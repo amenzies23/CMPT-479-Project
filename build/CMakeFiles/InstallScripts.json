@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/emmanuel.decaiman/Documents/sfu/2025-summer/cmpt-476-se/gcov-example/build/cmake_install.cmake",
+		"/Users/emmanuel.decaiman/Documents/sfu/2025-summer/cmpt-476-se/gcov-example/build/tests/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

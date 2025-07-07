@@ -1,0 +1,1 @@
+/usr/bin/c++ -O0 -coverage -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/add.dir/src/main.o -o add  libadd_lib.a

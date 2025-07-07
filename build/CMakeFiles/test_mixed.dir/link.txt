@@ -1,0 +1,1 @@
+/usr/bin/c++ -coverage -g -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/test_mixed.dir/tests/test_mixed.cpp.o CMakeFiles/test_mixed.dir/src/add.cpp.o -o test_mixed

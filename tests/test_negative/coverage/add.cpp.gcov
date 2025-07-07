@@ -1,0 +1,16 @@
+        -:    0:Source:/Users/emmanuel.decaiman/Documents/sfu/2025-summer/cmpt-476-se/gcov-example/src/add.cpp
+        -:    0:Graph:/Users/emmanuel.decaiman/Documents/sfu/2025-summer/cmpt-476-se/gcov-example/build/CMakeFiles/add_lib.dir/src/add.gcno
+        -:    0:Data:/Users/emmanuel.decaiman/Documents/sfu/2025-summer/cmpt-476-se/gcov-example/build/CMakeFiles/add_lib.dir/src/add.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:#include "add.h"
+        -:    2:
+function _ZN3AddC2Eii called 1 returned 100% blocks executed 100%
+function _ZN3AddC1Eii called 1 returned 100% blocks executed 100%
+        2:    3:Add::Add(int a, int b) : first_operand(a), second_operand(b) {};
+        -:    4:
+function _ZN3Add7get_sumEv called 1 returned 100% blocks executed 100%
+        1:    5:int Add::get_sum() {
+        1:    6:    return first_operand - second_operand;
+        -:    7:}
+        -:    8:
