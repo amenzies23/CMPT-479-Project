@@ -1,0 +1,8 @@
+build/
+.git/
+.github/
+.vscode/
+.idea/
+*.md
+docs/
+tests/
