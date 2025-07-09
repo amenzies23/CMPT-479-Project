@@ -1,49 +1,96 @@
-# CMPT 479 APR System
+# CMPT 479 APR SYSTEM
 
-## Architecture
+**automated program repair pipeline** with end-to-end fault localization, patch generation, and validation.
 
+> #### table of contents
+>
+> - [architecture](#architecture)
+> - [building the project](#building-the-project)
+> - [usage](#usage)
+> - [running tests](#running-tests)
+> - [output files](#output-files)
+> - [project structure](#project-structure)
+> - [pipeline workflow](#pipeline-workflow)
+
+## architecture
+
+```mermaid
+graph LR
+    A["input<br/>test results<br/>& coverage"] --> B["SBFL<br/>fault localization"]
+    B --> C["parser<br/>AST analysis"]
+    C --> D["mutator<br/>patch generation"]
+    D --> E["prioritizer<br/>patch ranking"]
+    E --> F["validator<br/>compilation & testing"]
+    F --> G["PRBot<br/>pull request creation"]
+    G --> H["output<br/>validated patches<br/>& GitHub PR"]
+    
+    B -.-> B1["suspicious<br/>locations"]
+    C -.-> C1["AST<br/>nodes"]
+    D -.-> D1["patch<br/>candidates"]
+    E -.-> E1["ranked<br/>patches"]
+    F -.-> F1["validated<br/>patches"]
+    G -.-> G1["GitHub<br/>PR"]
 ```
-Input → SBFL → Parser → Mutator → Prioritizer → Validator → PRBot → Output
-         ↓       ↓        ↓          ↓           ↓         ↓
-    Suspicious  AST     Patch      Ranked     Validated  GitHub
-    Locations  Nodes  Candidates  Patches     Patches     PR
-```
 
-## Building the Project
+***
 
-### 1. Clone and Navigate
+## building the project
+
+### 1. clone and navigate
 ```bash
-git clone <repository-url>
+git clone git@github.com:amenzies23/CMPT-479-Project.git
 cd CMPT-479-Project
 ```
 
-### 2. Create Out-of-Source Build Directory
+### 2. create out-of-source build directory
+⚠️ **important:** this project enforces out-of-source builds to keep source tree clean.
 
-### 3. Build the Project
+```bash
+# create and enter build directory
+mkdir -p build
+cd build
 
-### 4. Build Directory Structure
-After building, your `build/` directory will be organized as:
+# configure with cmake (from build directory)
+cmake ../CMPT-479-Project
+```
+
+### 3. build the project
+```bash
+make
+
+# alternative: build with parallel jobs
+make -j4
+
+# alternative: use cmake build
+cmake --build . -j4
+```
+
+### 4. build directory structure
+after building, your `build/` directory will be organized as:
 ```
 build/
 ├── bin/
-│   ├── apr_system        # Main executable
-│   └── apr_tests         # Test executable
+│   ├── apr_system              # main executable
+│   └── apr_tests               # test executable
 ├── lib/
-│   └── libapr_system_lib.a # Static library
-├── logs/                 # Log files (auto-created)
-├── results/              # Output results (auto-created)
-└── CMakeFiles/           # CMake build artifacts
+│   └── libapr_system_lib.a     # static library
+├── logs/                       # log files (auto-created)
+├── results/                    # output results (auto-created)
+└── CMakeFiles/                 # cmake build artifacts
 ```
 
-## Usage
+***
 
-### Basic Usage
+## usage
+
+### basic usage
 ```bash
 # from build directory
-./bin/apr_system --repo-url "https://github.com/user/repo" (currently with mock data)
+./bin/apr_system --repo-url "https://github.com/user/repo"
+# note: currently uses mock data for demonstration
 ```
 
-### Complete Example
+### complete example
 ```bash
 ./bin/apr_system \
   --repo-url "https://github.com/user/repo" \
@@ -51,30 +98,34 @@ build/
   --verbose
 ```
 
-## Running Tests
+***
 
-### Run All Tests
+## running tests
+
+### run all tests
 ```bash
 # from build directory
 ./bin/apr_tests
 ```
 
-### Run Specific Test Suites
+### run specific test suites
 ```bash
 # run with filters
 ./bin/apr_tests --gtest_filter="*SBFL*"
 ./bin/apr_tests --gtest_filter="*Validator*"
 ```
 
-## Output Files
+***
 
-### Pipeline Results
+## output files
+
+### pipeline results
 ```bash
-# main results file (JSON format)
+# main results file (json format)
 ./results/pipeline_results.json
 ```
 
-**Example Output Structure:**
+**example output structure:**
 ```json
 {
   "pipeline_summary": {
@@ -97,13 +148,15 @@ build/
 }
 ```
 
-### Execution Logs
+### execution logs
 ```bash
 # detailed logs with timestamps
 ./logs/apr_system.log
 ```
 
-## 📁 Project Structure
+***
+
+## project structure
 
 ```
 CMPT-479-Project/
@@ -126,7 +179,9 @@ CMPT-479-Project/
 └── tools/                  # here will be github app impl
 ```
 
-## Pipeline Workflow
+***
+
+## pipeline workflow
 
 ### 1. **SBFL (spectrum-based fault localization)**
 - analyzes test results and coverage data
@@ -134,8 +189,8 @@ CMPT-479-Project/
 - **output:** ranked list of potential fault locations
 
 ### 2. **parser**
-- parses source files into AST
-- extracts relevant code structures
+- parses source files into abstract syntax tree (AST)
+- extracts relevant code structures  
 - **output:** AST nodes for suspicious locations
 
 ### 3. **mutator**
@@ -157,3 +212,10 @@ CMPT-479-Project/
 - creates pull requests for valid patches
 - formats patch descriptions and metadata
 - **output:** github pull request PR
+
+***
+
+## references
+
+- [changelog](./CHANGELOG.md): version history, fixes, and feature additions
+- [authors](./AUTHORS): project contributors and roles
