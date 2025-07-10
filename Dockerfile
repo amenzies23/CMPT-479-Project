@@ -27,7 +27,8 @@ RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends 
         zlib1g-dev \
         xz-utils \
         bzip2 \
-        googletest \
+        libgtest-dev \
+        pkg-config \
         nlohmann-json3-dev \
         libfmt-dev \
         python3 \
@@ -38,6 +39,13 @@ RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends 
         gcovr \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 1000 \
     && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 1000
+
+# Install and build Google Test properly
+RUN cd /usr/src/googletest \
+    && cmake -B build -S . \
+    && cmake --build build --parallel \
+    && cmake --install build \
+    && ldconfig
 
 # Install Boost (version 1.83.0)
 RUN wget http://downloads.sourceforge.net/project/boost/boost/1.83.0/boost_1_83_0.tar.gz \
@@ -68,11 +76,11 @@ RUN cd /opt \
     && echo "/opt/emsdk/emsdk activate latest" >> /etc/profile \
     && echo ". /opt/emsdk/emsdk_env.sh" >> /etc/profile
 
-# Install spdlog
+# Install spdlog with system fmt (avoid bundled fmt conflict)
 RUN git clone https://github.com/gabime/spdlog.git \
     && cd spdlog \
     && mkdir build && cd build \
-    && cmake .. && make -j$(nproc) && make install \
+    && cmake .. -DSPDLOG_FMT_EXTERNAL=ON && make -j$(nproc) && make install \
     && cd ../.. && rm -rf spdlog
 
 # Install additional late-stage Ubuntu packages
