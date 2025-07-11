@@ -220,8 +220,6 @@ int main(int argc, char* argv[]) {
 
         // run the pipeline
         LOG_INFO("running APR project pipeline...");
-        // we can probably pass in the list of failed tests from ctest .log and a list of .gcov paths
-        // just need to pass in the base directory for .log file directory and .gcov files
         auto system_state = orchestrator->runPipeline(repo_metadata, args.sbfl_json);
 
         // create output directory

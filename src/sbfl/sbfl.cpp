@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include "sbfl.h"
@@ -8,6 +9,17 @@ namespace apr_system {
 std::vector<SuspiciousLocation> SBFL::localizeFaults(const std::string& sbfl_json) {
     std::vector<SuspiciousLocation> locations;
     LOG_COMPONENT_INFO("sbfl", "parsing JSON results from: {}", sbfl_json);
+
+    /*
+     * TODO: implement fault localization algorithm here
+     *
+     * input contracts:
+     * - sbfl_json: sbfl json result file path 
+     *
+     * output contract:
+     * - return SuspiciousLocation objects sorted by suspiciousness score (descending)
+     * - each location must have valid file_path, line_number, and score 0.0-1.0
+     */
 
     try {
         std::ifstream file(sbfl_json);
@@ -30,10 +42,17 @@ std::vector<SuspiciousLocation> SBFL::localizeFaults(const std::string& sbfl_jso
                 
                 locations.push_back(location);
             }
+
+            // sort by suspicious score (descending)
+            std::sort(locations.begin(), locations.end(), 
+                [](const SuspiciousLocation& a, const SuspiciousLocation& b) {
+                    return a.suspiciousness_score > b.suspiciousness_score;
+                });
         }
     } catch (const std::exception& e) {
         LOG_COMPONENT_ERROR("sbfl", "error parsing JSON results: {}", e.what());
     }
+
     return locations;
 }
 
