@@ -90,7 +90,7 @@ void saveSystemStateToJSON(const SystemState& state, const std::string& filepath
         file << "      \"file_path\": \"" << loc.file_path << "\",\n";
         file << "      \"line_number\": " << loc.line_number << ",\n";
         file << "      \"suspiciousness_score\": " << loc.suspiciousness_score << ",\n";
-        file << "      \"reason\": \"" << loc.reason << "\"\n";
+        file << "      \"function\": \"" << loc.function << "\"\n";
         file << "    }";
         if (i < state.suspicious_locations.size() - 1) file << ",";
         file << "\n";
@@ -163,8 +163,7 @@ int main(int argc, char* argv[]) {
             LOG_INFO("verbose mode enabled");
             LOG_INFO("repository URL: {}", args.repo_url);
             LOG_INFO("branch: {}", args.branch);
-            LOG_INFO("failed tests file: {}", args.failed_tests_log);
-            LOG_INFO("coverage base directory: {}", args.coverage_base_dir);
+            LOG_INFO("sbfl json: {}", args.sbfl_json);
         }
 
         // create component instances
@@ -186,18 +185,16 @@ int main(int argc, char* argv[]) {
             std::move(prbot)
         );
 
-        // load data from files or create mock data
-        // std::vector<TestResult> test_results;
-        // CoverageData coverage_data;
+        std::vector<TestResult> test_results;
+        CoverageData coverage_data;
 
-        // try {
-        //     if (std::filesystem::exists(args.test_results_file)) {
-        //         LOG_INFO("loading test results from: {}", args.test_results_file);
-        //         test_results = CLIParser::loadTestResults(args.test_results_file);
-        //     } else {
-        //         LOG_WARN("test results file not found, using mock data");
-        //         test_results = createMockTestResults();
-        //     }
+        try {
+            if (std::filesystem::exists(args.sbfl_json)) {
+                LOG_INFO("loading sbfl results from: {}", args.sbfl_json);
+            } else {
+                LOG_WARN("sbfl results file not found, using mock data");
+                test_results = createMockTestResults();
+            }
 
         //     if (std::filesystem::exists(args.coverage_file)) {
         //         LOG_INFO("loading coverage data from: {}", args.coverage_file);
@@ -206,11 +203,11 @@ int main(int argc, char* argv[]) {
         //         LOG_WARN("coverage file not found, using mock data");
         //         coverage_data = createMockCoverageData();
         //     }
-        // } catch (const std::exception& e) {
-        //     LOG_WARN("error loading files, falling back to mock data: {}", e.what());
-        //     test_results = createMockTestResults();
-        //     coverage_data = createMockCoverageData();
-        // }
+        } catch (const std::exception& e) {
+            LOG_WARN("error loading files, falling back to mock data: {}", e.what());
+            test_results = createMockTestResults();
+            coverage_data = createMockCoverageData();
+        }
 
         // create repository metadata
         auto repo_metadata = CLIParser::createRepositoryMetadata(args);
@@ -221,36 +218,11 @@ int main(int argc, char* argv[]) {
         //     LOG_INFO("found {} source files", repo_metadata.source_files.size());
         // }
 
-    std::vector<TestResult> test_results;
-
-    CoverageData coverage_data;
-
-        try {
-            if (std::filesystem::exists(args.failed_tests_log)) {
-                LOG_INFO("failed test results: {}", args.failed_tests_log);
-            } else {
-                LOG_WARN("test results file not found, using mock data");
-                test_results = createMockTestResults();
-            }
-
-            if (std::filesystem::exists(args.coverage_base_dir)) {
-                LOG_INFO("coverage data directory: {}", args.coverage_base_dir);
-            } else {
-                LOG_WARN("coverage directory not found, using mock data");
-                coverage_data = createMockCoverageData();
-            }
-        } catch (const std::exception& e) {
-            LOG_WARN("error loading files, falling back to mock data: {}", e.what());
-            test_results = createMockTestResults();
-            coverage_data = createMockCoverageData();
-        }
-
-
         // run the pipeline
         LOG_INFO("running APR project pipeline...");
         // we can probably pass in the list of failed tests from ctest .log and a list of .gcov paths
         // just need to pass in the base directory for .log file directory and .gcov files
-        auto system_state = orchestrator->runPipeline(repo_metadata, args.failed_tests_log, args.coverage_base_dir);
+        auto system_state = orchestrator->runPipeline(repo_metadata, args.sbfl_json);
 
         // create output directory
         std::filesystem::create_directories(args.output_dir);

@@ -12,8 +12,7 @@ CLIArgs CLIParser::parseArgs(int argc, char* argv[]) {
     args.repo_url = "";
     args.branch = "main";
     args.commit_hash = "";
-    args.failed_tests_log = "../build/Testing/Temporary/LastTestsFailed.log";
-    args.coverage_base_dir = "../build/coverage";
+    args.sbfl_json = "./results/data.json";
     args.output_dir = "apr-project-results";
     args.max_patches = 5;
     args.confidence_threshold = 0.7;

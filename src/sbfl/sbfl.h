@@ -27,14 +27,13 @@ public:
    * scores
    * 4. return sorted list of suspicious locations
    *
-   * @param failed_tests_log path to CTest failed tests log file
-   * @param coverage_base_dir path to directory containing .gcov files organized by test
+   * @param sbfl_json Path to json file containing SBFL scores
+   * 
    * @return vector of suspicious locations ranked by suspiciousness score
    * (0.0-1.0)
    */
   std::vector<SuspiciousLocation>
-  localizeFaults(const std::string& failed_tests_log,
-                 const std::string& coverage_base_dir) override;
+  localizeFaults(const std::string& sbfl_json) override;
 };
 
 } // namespace apr_system
