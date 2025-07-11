@@ -70,6 +70,11 @@ coverage/
 *.temp .DS_Store
 Thumbs.db
 
+# Environment files
+.env
+.env.local
+.env.*.local
+
 # Temporary output directories
 final-verification/
 test-output/
