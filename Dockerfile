@@ -21,6 +21,7 @@ RUN apt-get update -y \
         pkg-config \
         nlohmann-json3-dev \
         libfmt-dev \
+        libtree-sitter-dev \
         gcovr \
         cppcheck \
         gdb \
