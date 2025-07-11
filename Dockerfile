@@ -21,6 +21,11 @@ RUN apt-get update -y \
         pkg-config \
         nlohmann-json3-dev \
         libfmt-dev \
+        gcovr \
+        cppcheck \
+        gdb \
+        valgrind \
+        python3 \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 1000 \
     && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 1000 \
     && rm -rf /var/lib/apt/lists/*
