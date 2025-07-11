@@ -13,8 +13,8 @@ struct CLIArgs {
   std::string repo_url;
   std::string branch;
   std::string commit_hash;
-  std::string test_results_file;
-  std::string coverage_file;
+  std::string failed_tests_log;
+  std::string coverage_base_dir;
   std::string output_dir;
   std::string config_file;
   int max_patches;

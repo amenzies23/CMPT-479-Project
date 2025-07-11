@@ -27,14 +27,14 @@ public:
    * scores
    * 4. return sorted list of suspicious locations
    *
-   * @param test_results test execution results with pass/fail status
-   * @param coverage_data line-by-line code coverage information
+   * @param failed_tests_log path to CTest failed tests log file
+   * @param coverage_base_dir path to directory containing .gcov files organized by test
    * @return vector of suspicious locations ranked by suspiciousness score
    * (0.0-1.0)
    */
   std::vector<SuspiciousLocation>
-  localizeFaults(const std::vector<TestResult> &test_results,
-                 const CoverageData &coverage_data) override;
+  localizeFaults(const std::string& failed_tests_log,
+                 const std::string& coverage_base_dir) override;
 };
 
 } // namespace apr_system

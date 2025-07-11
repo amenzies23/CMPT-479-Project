@@ -21,13 +21,13 @@ public:
   /**
    * @brief run the complete apr project pipeline
    * @param repo_metadata repository metadata
-   * @param test_results test execution results
-   * @param coverage_data code coverage information
+   * @param failed_tests_log path to CTest failed tests log file
+   * @param coverage_base_dir path to directory containing .gcov files organized by test
    * @return complete system state after pipeline execution
    */
   SystemState runPipeline(const RepositoryMetadata &repo_metadata,
-                          const std::vector<TestResult> &test_results,
-                          const CoverageData &coverage_data) override;
+                          const std::string &failed_test_log,
+                          const std::string &coverage_base_dir) override;
 
   /**
    * @brief set component dependencies

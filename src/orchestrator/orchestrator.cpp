@@ -31,15 +31,14 @@ Orchestrator::Orchestrator() {
 
 SystemState Orchestrator::runPipeline(
     const RepositoryMetadata& repo_metadata,
-    const std::vector<TestResult>& test_results,
-    const CoverageData& coverage_data
+    const std::string& failed_test_log,
+    const std::string& coverage_base_dir
 ) {
+    std::vector<TestResult> test_results;
     validateComponents();
 
     SystemState state{
         .repo_metadata = repo_metadata,
-        .test_results = test_results,
-        .coverage_data = coverage_data,
         .suspicious_locations = {},
         .ast_nodes = {},
         .patch_candidates = {},
@@ -51,7 +50,7 @@ SystemState Orchestrator::runPipeline(
 
     // step 1: fault localization
     LOG_COMPONENT_INFO("sbfl", "running fault localization...");
-    state.suspicious_locations = sbfl_->localizeFaults(test_results, coverage_data);
+    state.suspicious_locations = sbfl_->localizeFaults(failed_test_log, coverage_base_dir);
     LOG_COMPONENT_INFO("sbfl", "fault localization completed - found {} suspicious locations", state.suspicious_locations.size());
 
     if (state.suspicious_locations.empty()) {

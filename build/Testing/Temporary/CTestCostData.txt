@@ -1,9 +1,0 @@
-zero 1 0.00273767
-positive 0 0
-negative 0 0
-mixed 0 0
-with_zero 1 0.00232338
----
-positive
-negative
-mixed

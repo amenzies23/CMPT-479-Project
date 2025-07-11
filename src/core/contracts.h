@@ -15,13 +15,13 @@ public:
 
   /**
    * @brief run fault localization on test results and coverage data
-   * @param test_results test execution results
-   * @param coverage_data code coverage information
+   * @param failed_tests_log path to CTest failed tests log file
+   * @param coverage_base_dir path to directory containing .gcov files organized by test
    * @return vector of suspicious locations ranked by suspiciousness score
    */
   virtual std::vector<SuspiciousLocation>
-  localizeFaults(const std::vector<TestResult> &test_results,
-                 const CoverageData &coverage_data) = 0;
+  localizeFaults(const std::string &failed_tests_log,
+                 const std::string &coverage_base_dir) = 0;
 };
 
 /**
@@ -127,13 +127,13 @@ public:
   /**
    * @brief run the complete apr project pipeline
    * @param repo_metadata repository metadata
-   * @param test_results test execution results
-   * @param coverage_data code coverage information
+   * @param failed_tests_log path to CTest failed tests log file
+   * @param coverage_base_dir path to directory containing .gcov files organized by test
    * @return complete system state after pipeline execution
    */
   virtual SystemState runPipeline(const RepositoryMetadata &repo_metadata,
-                                  const std::vector<TestResult> &test_results,
-                                  const CoverageData &coverage_data) = 0;
+                                  const std::string &failed_test_log,
+                                  const std::string &coverage_base_dir) = 0;
 
   /**
    * @brief set component dependencies

@@ -180,8 +180,9 @@ struct RepositoryMetadata {
  */
 struct SystemState {
   RepositoryMetadata repo_metadata;
-  std::vector<TestResult> test_results;
-  CoverageData coverage_data;
+  // might not be needed
+//   std::vector<TestResult> test_results;
+//   CoverageData coverage_data;
   std::vector<SuspiciousLocation> suspicious_locations;
   std::vector<ASTNode> ast_nodes;
   std::vector<PatchCandidate> patch_candidates;
@@ -190,8 +191,8 @@ struct SystemState {
   bool has_pr_result;
   PRResult pr_result;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SystemState, repo_metadata, test_results,
-                                 coverage_data, suspicious_locations, ast_nodes,
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(SystemState, repo_metadata,
+                                 suspicious_locations, ast_nodes,
                                  patch_candidates, prioritized_patches,
                                  validation_results, has_pr_result, pr_result)
 };
