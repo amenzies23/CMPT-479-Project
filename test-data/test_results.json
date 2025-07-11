@@ -1,0 +1,9 @@
+[
+  {
+    "test_name": "test_example",
+    "passed": true,
+    "execution_time_ms": 42,
+    "output": "All assertions passed.",
+    "error_message": ""
+  }
+]

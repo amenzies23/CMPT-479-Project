@@ -1,0 +1,62 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-json
+      # - id: debug-statements
+
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v17.0.6
+    hooks:
+      - id: clang-format
+        types: [c++, c]
+        args: [--style=file]
+
+  # python tools
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        language_version: python3
+        files: ^tools/.*\.py$
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black]
+        files: ^tools/.*\.py$
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: [--max-line-length=88, --extend-ignore=E203,W503]
+        files: ^tools/.*\.py$
+
+  # optional tools (only run if commands are available)
+  - repo: local
+    hooks:
+      - id: clang-tidy-optional
+        name: clang-tidy (optional)
+        entry: bash -c 'if command -v clang-tidy >/dev/null 2>&1; then clang-tidy "$@"; else echo "clang-tidy not found, skipping..."; fi' --
+        language: system
+        types: [c++, c]
+        args: [--checks=readability-*,performance-*,bugprone-*]
+
+      - id: cmake-format-optional
+        name: cmake-format (optional)
+        entry: bash -c 'if command -v cmake-format >/dev/null 2>&1; then cmake-format --in-place "$@"; else echo "cmake-format not found, skipping..."; fi' --
+        language: system
+        types: [cmake]
+
+      - id: cmake-lint-optional
+        name: cmake-lint (optional)
+        entry: bash -c 'if command -v cmake-lint >/dev/null 2>&1; then cmake-lint "$@"; else echo "cmake-lint not found, skipping..."; fi' --
+        language: system
+        types: [cmake]
