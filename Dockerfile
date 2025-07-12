@@ -30,6 +30,7 @@ RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends 
         libgtest-dev \
         pkg-config \
         nlohmann-json3-dev \
+        libtree-sitter-dev \
         libfmt-dev \
         python3 \
         python3-pip \

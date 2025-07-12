@@ -47,10 +47,16 @@ target_link_libraries(apr_system_lib
         nlohmann_json::nlohmann_json
         fmt::fmt
         spdlog::spdlog
+        # **ADDED THIS**
+        tree-sitter
+        tree-sitter-cpp
 )
 
 # create the main executable
 add_executable(apr_system main.cpp)
+
+# **ADDED THIS**
+add_compile_definitions(PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 # link the library
 target_link_libraries(apr_system
@@ -62,4 +68,10 @@ target_link_libraries(apr_system
 target_include_directories(apr_system
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# **ADDED THIS**
+target_include_directories(apr_system_lib
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/tree-sitter/lib/include
 )

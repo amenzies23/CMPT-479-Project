@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(apr_system VERSION 1.0.0 LANGUAGES CXX)
+project(apr_system VERSION 1.0.0 LANGUAGES CXX C)
 
 # prevent in-source builds
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
@@ -34,6 +34,10 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wall -Wextra -Wpedantic -Wno-unused-parameter -fsanitize=address,undefined")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -Wall -Wextra -Wno-unused-parameter")
 
+# **ADDED THIS**
+# Define directory
+add_compile_definitions(PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
 # enable testing
 enable_testing()
 
@@ -45,6 +49,25 @@ find_package(spdlog REQUIRED)
 # add subdirectories
 add_subdirectory(src)
 add_subdirectory(tests)
+
+# **ADDED THIS**
+add_subdirectory(tree-sitter)
+add_subdirectory(tree-sitter-cpp)
+
+
+# link other deps to apr_system_lib
+target_link_libraries(apr_system_lib
+    PUBLIC
+        nlohmann_json::nlohmann_json
+        fmt::fmt
+        spdlog::spdlog
+    # **ADDED THIS**
+    PRIVATE
+        tree-sitter
+)
+
+# **ADDED THIS**
+target_include_directories(apr_system_lib PRIVATE ${CMAKE_SOURCE_DIR}/tree-sitter/lib/include)
 
 # install configuration
 include(GNUInstallDirs)
