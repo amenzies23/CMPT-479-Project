@@ -27,6 +27,9 @@ RUN apt-get update -y \
         gdb \
         valgrind \
         python3 \
+        python3-pip \
+        python3-pandas \
+        python3-venv \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 1000 \
     && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 1000 \
     && rm -rf /var/lib/apt/lists/*
@@ -44,3 +47,10 @@ RUN git clone https://github.com/gabime/spdlog.git \
     && mkdir build && cd build \
     && cmake .. -DSPDLOG_FMT_EXTERNAL=ON && make -j$(nproc) && make install \
     && cd ../.. && rm -rf spdlog
+
+# Install GLaDOS SBFL
+RUN python3 -m venv .venv \
+    && git clone https://github.com/Suresoft-GLaDOS/SBFL \
+    && cd SBFL \
+    && ../.venv/bin/pip install --upgrade pip \
+    && ../.venv/bin/pip install .
