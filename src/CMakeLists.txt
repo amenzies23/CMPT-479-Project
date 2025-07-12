@@ -48,8 +48,8 @@ target_link_libraries(apr_system_lib
         fmt::fmt
         spdlog::spdlog
         # **ADDED THIS**
-        tree-sitter
-        tree-sitter-cpp
+        unofficial::tree-sitter::tree-sitter
+        tree-sitter-cpp-grammar
 )
 
 # create the main executable
@@ -70,8 +70,3 @@ target_include_directories(apr_system
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# **ADDED THIS**
-target_include_directories(apr_system_lib
-  PRIVATE
-    ${CMAKE_SOURCE_DIR}/tree-sitter/lib/include
-)
