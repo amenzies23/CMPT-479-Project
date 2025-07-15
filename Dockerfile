@@ -1,7 +1,7 @@
 # Stage 1: Build environment
-FROM ubuntu:noble AS build
+FROM ubuntu:noble
 
-# Update and install essential packages and repositories
+# Add GCC toolchain repository and update
 RUN apt-get update -y \
     && DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends \
         software-properties-common \
@@ -9,84 +9,52 @@ RUN apt-get update -y \
     && apt-get update -y
 
 # Install essential Ubuntu packages
-RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends \
-        apt-utils \
-        ca-certificates \
-        lsb-release \
-        gnupg2 \
-        wget \
+RUN apt-get update -y \
+    && DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends --fix-missing \
         git \
         make \
-        ninja-build \
         cmake \
-        valgrind \
-        heaptrack \
-        cppcheck \
-        libncurses5-dev \
-        libsqlite3-dev \
-        zlib1g-dev \
-        xz-utils \
-        bzip2 \
-        libgtest-dev \
-        pkg-config \
-        nlohmann-json3-dev \
-        libtree-sitter-dev \
-        libfmt-dev \
-        python3 \
-        python3-pip \
         gcc-14 \
         g++-14 \
-        gdb \
+        libgtest-dev \
+        pkg-config \
         gcovr \
+        cppcheck \
+        gdb \
+        valgrind \
+        python3 \
+        curl \
+        unzip \
+        zip \
+        tar \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 1000 \
-    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 1000
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 1000 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install and build Google Test properly
+# Install and build Google Test
 RUN cd /usr/src/googletest \
     && cmake -B build -S . \
     && cmake --build build --parallel \
     && cmake --install build \
     && ldconfig
 
-# Install Boost (version 1.83.0)
-RUN wget http://downloads.sourceforge.net/project/boost/boost/1.83.0/boost_1_83_0.tar.gz \
-    && tar xfz boost_1_83_0.tar.gz \
-    && rm boost_1_83_0.tar.gz \
-    && cd boost_1_83_0 \
-    && ./bootstrap.sh --with-libraries=system,filesystem,container,locale,log,program_options,serialization,stacktrace \
-    && ./b2 cxxstd=23 install \
-    && cd ../ && rm -rf boost_1_83_0
+# Install vcpkg
+RUN git clone https://github.com/Microsoft/vcpkg.git /opt/vcpkg \
+    && /opt/vcpkg/bootstrap-vcpkg.sh \
+    && /opt/vcpkg/vcpkg integrate install
 
-# Install LLVM and Clang (version 18)
-RUN wget https://apt.llvm.org/llvm.sh \
-    && chmod +x llvm.sh \
-    && ./llvm.sh 18 \
-    && rm llvm.sh \
-    && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 1000 \
-    && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 1000 \
-    && update-alternatives --install /usr/bin/llvm-profdata llvm-profdata /usr/bin/llvm-profdata-18 1000 \
-    && update-alternatives --install /usr/bin/llvm-cov llvm-cov /usr/bin/llvm-cov-18 1000
+# Set environment variables for vcpkg
+ENV VCPKG_ROOT=/opt/vcpkg
+ENV CMAKE_TOOLCHAIN_FILE=/opt/vcpkg/scripts/buildsystems/vcpkg.cmake
 
-# Install Emscripten
-RUN cd /opt \
-    && git clone https://github.com/emscripten-core/emsdk.git \
-    && cd emsdk \
-    && ./emsdk install latest \
-    && ./emsdk activate latest \
-    && ./emsdk construct_env \
-    && echo "/opt/emsdk/emsdk activate latest" >> /etc/profile \
-    && echo ". /opt/emsdk/emsdk_env.sh" >> /etc/profile
+# Set working directory
+WORKDIR /workspace
 
-# Install spdlog with system fmt (avoid bundled fmt conflict)
-RUN git clone https://github.com/gabime/spdlog.git \
-    && cd spdlog \
-    && mkdir build && cd build \
-    && cmake .. -DSPDLOG_FMT_EXTERNAL=ON && make -j$(nproc) && make install \
-    && cd ../.. && rm -rf spdlog
+# Copy source code
+COPY . .
 
-# Install additional late-stage Ubuntu packages
-RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends \
-        heaptrack
+# Install project dependencies via vcpkg (manifest mode)
+RUN /opt/vcpkg/vcpkg install --triplet=x64-linux
 
-# Final cleanup to reduce image size
-RUN rm -rf /var/lib/apt/lists/*
+# Clone tree-sitter-cpp grammar
+RUN git clone --depth 1 --branch v0.20.0 https://github.com/tree-sitter/tree-sitter-cpp.git /opt/tree-sitter-cpp-grammar

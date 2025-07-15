@@ -1,0 +1,10 @@
+{
+  "name": "cmpt-479-apr-system",
+  "version": "0.1.0",
+  "dependencies": [
+    "tree-sitter",
+    "nlohmann-json",
+    "fmt",
+    "spdlog"
+  ]
+} 
