@@ -56,7 +56,13 @@ target_link_libraries(apr_system_lib
 add_executable(apr_system main.cpp)
 
 # **ADDED THIS**
-add_compile_definitions(PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+target_compile_definitions(apr_system_lib
+    PRIVATE PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_compile_definitions(apr_system
+    PRIVATE PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
 
 # link the library
 target_link_libraries(apr_system
