@@ -81,10 +81,12 @@ struct ASTNode {
   std::string file_path;
   std::string source_text;
   std::vector<std::string> child_node_ids;
+  double suspiciousness_score;
+  std::string sbfl_reason;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(ASTNode, node_id, node_type, start_line,
                                  end_line, start_column, end_column, file_path,
-                                 source_text, child_node_ids)
+                                 source_text, child_node_ids,suspiciousness_score,sbfl_reason)
 };
 
 /**
