@@ -61,67 +61,71 @@ RepositoryMetadata CLIParser::createRepositoryMetadata(const CLIArgs& args) {
     metadata.commit_hash = args.commit_hash.empty() ? "abc123" : args.commit_hash;
     metadata.build_script = "cmake .. && make";
     metadata.test_script = "ctest";
+
     metadata.source_files.push_back("src/main.cpp");
-    metadata.source_files.push_back("src/example.cpp");
+    metadata.source_files.push_back("src/hello_world.cpp");
+    metadata.source_files.push_back("src/calculator.cpp");
+
     return metadata;
 }
 
 std::vector<TestResult> CLIParser::loadTestResults(const std::string& file_path) {
-    // simplified -> return mock data instead of complex file parsing
+    // simplified -> return mock data
     LOG_COMPONENT_INFO("cli", "loading test results (using mock data)");
-    
+
     std::vector<TestResult> results;
-    
+
     TestResult test1;
-    test1.test_name = "test_example_function";
+    test1.test_name = "test_calculator_add";
     test1.passed = false;
-    test1.execution_time_ms = 150;
-    test1.output = "";
-    test1.error_message = "Expected 42, got 40";
+    test1.execution_time_ms = 120;
+    test1.output = "8";
+    test1.error_message = "Expected 10, got 8";
     results.push_back(test1);
-    
+
     TestResult test2;
-    test2.test_name = "test_basic_functionality";
-    test2.passed = true;
-    test2.execution_time_ms = 50;
-    test2.output = "Test passed successfully";
-    test2.error_message = "";
+    test2.test_name = "test_hello_world_output";
+    test2.passed = false;
+    test2.execution_time_ms = 40;
+    test2.output = "Hello world!";
+    test2.error_message = "Expected Hello, world!";
     results.push_back(test2);
-    
+
     return results;
 }
 
 CoverageData CLIParser::loadCoverageData(const std::string& file_path) {
     // simplified -> return mock data
     LOG_COMPONENT_INFO("cli", "loading coverage data (using mock data)");
-    
+
     CoverageData coverage;
-    
+
     LineCoverage line1;
     line1.file_path = "src/main.cpp";
     line1.line_number = 10;
     line1.hit_count = 8;
     line1.covered = true;
     coverage.line_coverage.push_back(line1);
-    
+
     LineCoverage line2;
-    line2.file_path = "src/example.cpp";
-    line2.line_number = 15;
-    line2.hit_count = 2;
+    line2.file_path = "src/hello_world.cpp";
+    line2.line_number = 4;
+    line2.hit_count = 1;
     line2.covered = true;
     coverage.line_coverage.push_back(line2);
-    
+
     LineCoverage line3;
-    line3.file_path = "src/example.cpp";
-    line3.line_number = 20;
-    line3.hit_count = 0;
-    line3.covered = false;
+    line3.file_path = "src/calculator.cpp";
+    line3.line_number = 5;
+    line3.hit_count = 1;
+    line3.covered = true;
     coverage.line_coverage.push_back(line3);
-    
+
     coverage.covered_files.push_back("src/main.cpp");
-    coverage.covered_files.push_back("src/example.cpp");
-    coverage.total_coverage_percentage = 75.0;
-    
+    coverage.covered_files.push_back("src/hello_world.cpp");
+    coverage.covered_files.push_back("src/calculator.cpp");
+    coverage.total_coverage_percentage = 85.0;
+
     return coverage;
 }
 
@@ -129,33 +133,41 @@ std::vector<std::string> CLIParser::findSourceFiles() {
     // simplified -> return static list
     std::vector<std::string> files;
     files.push_back("src/main.cpp");
-    files.push_back("src/example.cpp");
-    files.push_back("src/utils.cpp");
+    files.push_back("src/hello_world.cpp");
+    files.push_back("src/calculator.cpp");
     return files;
 }
 
 CoverageData CLIParser::createMockCoverageData() {
-    // simplified mock data
+    // simplified -> return mock data
     CoverageData coverage;
-    
+
     LineCoverage line1;
     line1.file_path = "src/main.cpp";
     line1.line_number = 10;
     line1.hit_count = 5;
     line1.covered = true;
     coverage.line_coverage.push_back(line1);
-    
+
     LineCoverage line2;
-    line2.file_path = "src/example.cpp";
-    line2.line_number = 15;
+    line2.file_path = "src/hello_world.cpp";
+    line2.line_number = 4;
     line2.hit_count = 2;
     line2.covered = true;
     coverage.line_coverage.push_back(line2);
-    
+
+    LineCoverage line3;
+    line3.file_path = "src/calculator.cpp";
+    line3.line_number = 5;
+    line3.hit_count = 1;
+    line3.covered = true;
+    coverage.line_coverage.push_back(line3);
+
     coverage.covered_files.push_back("src/main.cpp");
-    coverage.covered_files.push_back("src/example.cpp");
+    coverage.covered_files.push_back("src/hello_world.cpp");
+    coverage.covered_files.push_back("src/calculator.cpp");
     coverage.total_coverage_percentage = 80.0;
-    
+
     return coverage;
 }
 

@@ -30,7 +30,7 @@ std::vector<TestResult> createMockTestResults() {
             .test_name = "test_calculator_addition",
             .passed = false,
             .execution_time_ms = 89,
-            .output = "Test: add(2, 3)\nExpected: 5\nActual: -1\nFAILED",
+            .output = "Test: add(8, 2)\nExpected: 10\nActual: 8\nFAILED",
             .error_message = "Calculator addition function returns incorrect result"
         }
     };
@@ -47,7 +47,7 @@ CoverageData createMockCoverageData() {
             },
             {
                 .file_path = "src/calculator.cpp",
-                .line_number = 9,
+                .line_number = 5,
                 .hit_count = 3,
                 .covered = true
             }
