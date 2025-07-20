@@ -63,9 +63,10 @@ struct SuspiciousLocation {
   int line_number;
   double suspiciousness_score;
   std::string function;
+  std::string reason;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(SuspiciousLocation, file_path, line_number,
-                                 suspiciousness_score, function)
+                                 suspiciousness_score, function, reason)
 };
 
 /**

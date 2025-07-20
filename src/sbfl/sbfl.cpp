@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 #include "sbfl.h"
 #include "../core/logger.h"
+#include <iostream>
 
 namespace apr_system {
 
@@ -35,11 +36,16 @@ std::vector<SuspiciousLocation> SBFL::localizeFaults(const std::string& sbfl_jso
 
             for (const auto& item : data_array) {
                 SuspiciousLocation location;
-                location.file_path = item.value("file", "unknown");
+                std::string full_path = item.value("file", "unknown");
+
+                // extract the relative path
+                std::string marker = "src/testing_mock/src/";
+                size_t pos = full_path.find(marker);
+                location.file_path = full_path.substr(pos);
+
                 location.function = item.value("function", "unknown");
                 location.line_number = item.value("line", 0);
                 location.suspiciousness_score = item.value("score", 0.0);
-                
                 locations.push_back(location);
             }
 

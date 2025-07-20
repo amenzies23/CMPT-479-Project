@@ -32,6 +32,7 @@ RUN apt-get update -y \
         tar \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 1000 \
     && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 1000 \
+    && ln -sf /usr/bin/gcov-14 /usr/bin/gcov \
     && rm -rf /var/lib/apt/lists/*
 
 # Install and build Google Test
@@ -40,13 +41,6 @@ RUN cd /usr/src/googletest \
     && cmake --build build --parallel \
     && cmake --install build \
     && ldconfig
-
-# Install spdlog with system fmt (avoid bundled fmt conflict)
-RUN git clone https://github.com/gabime/spdlog.git \
-    && cd spdlog \
-    && mkdir build && cd build \
-    && cmake .. -DSPDLOG_FMT_EXTERNAL=ON && make -j$(nproc) && make install \
-    && cd ../.. && rm -rf spdlog
 
 # Install GLaDOS SBFL
 RUN python3 -m venv .venv \

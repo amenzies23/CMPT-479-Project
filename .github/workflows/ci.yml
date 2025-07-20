@@ -80,17 +80,17 @@ jobs:
         # skip if this is a PR and the branch already passed CI
         SKIP_IF_PASSED: ${{ github.event_name == 'pull_request' }}
 
-    - name: "STEP X: Run SBFL Analysis"
-      run: |
-        docker run --rm \
-          -v ${{ github.workspace }}:/workspace \
-          -w /workspace \
-          apr-system:latest bash -c "
-            set -e
-            echo 'Running SBFL Analysis...'
-            /.venv/bin/python src/sbfl/sbfl_analysis.py
-            echo 'SBFL analysis completed'
-          "
+    # - name: "STEP X: Run SBFL Analysis"
+    #   run: |
+    #     docker run --rm \
+    #       -v ${{ github.workspace }}:/workspace \
+    #       -w /workspace \
+    #       apr-system:latest bash -c "
+    #         set -e
+    #         echo 'Running SBFL Analysis...'
+    #         /.venv/bin/python src/sbfl/sbfl_analysis.py
+    #         echo 'SBFL analysis completed'
+    #       "
 
     - name: "STEP 5: APR System Functional Checks"
       run: |

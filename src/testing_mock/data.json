@@ -1,0 +1,48 @@
+{
+    "schema": {
+        "fields": [
+            {
+                "name": "file",
+                "type": "string"
+            },
+            {
+                "name": "function",
+                "type": "string"
+            },
+            {
+                "name": "line",
+                "type": "integer"
+            },
+            {
+                "name": "score",
+                "type": "number"
+            }
+        ],
+        "primaryKey": [
+            "file",
+            "function",
+            "line"
+        ],
+        "pandas_version": "1.4.0"
+    },
+    "data": [
+        {
+            "file": "/workspace/src/testing_mock/build/CMakeFiles/add_lib.dir/src/add.gcno///workspace/src/testing_mock/src/add.cpp",
+            "function": "_ZN3AddC2Eii",
+            "line": 3,
+            "score": 0.7745966692
+        },
+        {
+            "file": "/workspace/src/testing_mock/build/CMakeFiles/add_lib.dir/src/add.gcno///workspace/src/testing_mock/src/add.cpp",
+            "function": "_ZN3Add7get_sumEv",
+            "line": 5,
+            "score": 0.7745966692
+        },
+        {
+            "file": "/workspace/src/testing_mock/build/CMakeFiles/add_lib.dir/src/add.gcno///workspace/src/testing_mock/src/add.cpp",
+            "function": "_ZN3Add7get_sumEv",
+            "line": 6,
+            "score": 0.7745966692
+        }
+    ]
+}

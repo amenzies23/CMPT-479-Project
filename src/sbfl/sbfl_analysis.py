@@ -3,8 +3,10 @@ import pandas as pd
 from sbfl.utils import gcov_files_to_frame, get_sbfl_scores_from_frame
 import json
 
-FAILED_TESTS_FILE = './build/Testing/Temporary/LastTestsFailed.log'
+FAILED_TESTS_FILE = './src/testing_mock/build/Testing/Temporary/LastTestsFailed.log'
+
 COVERAGE_DIRECTORY = './build/coverage'
+COVERAGE_DIRECTORY = './src/testing_mock/build/coverage'
 
 
 # format of .log file:
@@ -19,7 +21,7 @@ def get_failing_tests_from_ctest():
                 if line:
                     if ':' in line:
                         test_name = line.split(':', 1)[1]
-                        failing_tests.append(f"test_{test_name}")
+                        failing_tests.append(test_name)
     else:
         print("FAILED_TESTS_FILE not found")
         exit()
@@ -58,7 +60,7 @@ if failing_tests:
     score_df = get_sbfl_scores_from_frame(cov_df, failing_tests=failing_tests)
     score_df = score_df.to_json(orient="table")
     parsed = json.loads(score_df)
-    with open('./build/results/data.json', 'w', encoding='utf-8') as f:
+    with open('./src/testing_mock/data.json', 'w', encoding='utf-8') as f:
         json.dump(parsed, f, ensure_ascii=False, indent=4)
 else:
     print("all tests passed. SBFL was not calculated")

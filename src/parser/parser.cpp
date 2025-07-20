@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <tree_sitter/api.h>
 
+#include <iostream>
+
 extern "C" const TSLanguage *tree_sitter_cpp();
 
 namespace apr_system {
@@ -138,6 +140,9 @@ TSTree* parse_file_into_AST(const std::string& file_path, const std::string& sou
 // Helper, parse all source files and store the syntax trees and source code content
 std::pair<std::unordered_map<std::string, TSTree*>, std::unordered_map<std::string, std::string>>
 parse_files_into_AST(const std::vector<std::string>& source_file_paths) {
+
+
+
     // Maps to store: file_path -> AST and file_path -> source_content
     std::unordered_map<std::string, TSTree*> path_to_AST;
     std::unordered_map<std::string, std::string> source_content_path;
@@ -173,6 +178,7 @@ void process_suspicious_location(const SuspiciousLocation& sus_loc,
                                        const std::unordered_map<std::string, std::string>& source_content_path,
                                        std::vector<ASTNode>& node_AST,
                                        int& unique_node_counter) {
+
     // Find the syntax tree for this suspicious file
     auto lookup_AST = path_to_AST.find(sus_loc.file_path);
     if (lookup_AST == path_to_AST.end()) {
