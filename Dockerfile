@@ -23,12 +23,16 @@ RUN apt-get update -y \
         gdb \
         valgrind \
         python3 \
+        python3-pip \
+        python3-pandas \
+        python3-venv \
         curl \
         unzip \
         zip \
         tar \
     && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 1000 \
     && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 1000 \
+    && ln -sf /usr/bin/gcov-14 /usr/bin/gcov \
     && rm -rf /var/lib/apt/lists/*
 
 # Install and build Google Test
@@ -37,6 +41,13 @@ RUN cd /usr/src/googletest \
     && cmake --build build --parallel \
     && cmake --install build \
     && ldconfig
+
+# Install GLaDOS SBFL
+RUN python3 -m venv .venv \
+    && git clone https://github.com/Suresoft-GLaDOS/SBFL \
+    && cd SBFL \
+    && ../.venv/bin/pip install --upgrade pip \
+    && ../.venv/bin/pip install .
 
 # Install vcpkg
 RUN git clone https://github.com/Microsoft/vcpkg.git /opt/vcpkg \
@@ -56,5 +67,4 @@ COPY . .
 # Install project dependencies via vcpkg (manifest mode)
 RUN /opt/vcpkg/vcpkg install --triplet=x64-linux
 
-# Clone tree-sitter-cpp grammar
 RUN git clone --depth 1 --branch v0.20.0 https://github.com/tree-sitter/tree-sitter-cpp.git /opt/tree-sitter-cpp-grammar

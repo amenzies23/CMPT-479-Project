@@ -12,8 +12,7 @@ CLIArgs CLIParser::parseArgs(int argc, char* argv[]) {
     args.repo_url = "";
     args.branch = "main";
     args.commit_hash = "";
-    args.test_results_file = "test-data/test_results.json";
-    args.coverage_file = "test-data/coverage.xml";
+    args.sbfl_json = "../src/testing_mock/data.json";
     args.output_dir = "apr-project-results";
     args.max_patches = 5;
     args.confidence_threshold = 0.7;
@@ -63,9 +62,10 @@ RepositoryMetadata CLIParser::createRepositoryMetadata(const CLIArgs& args) {
     metadata.build_script = "cmake .. && make";
     metadata.test_script = "ctest";
 
-    metadata.source_files.push_back("src/main.cpp");
-    metadata.source_files.push_back("src/hello_world.cpp");
-    metadata.source_files.push_back("src/calculator.cpp");
+    // metadata.source_files.push_back("src/main.cpp");
+    // metadata.source_files.push_back("src/hello_world.cpp");
+    // metadata.source_files.push_back("src/calculator.cpp");
+    metadata.source_files.push_back("src/testing_mock/src/add.cpp");
 
     return metadata;
 }

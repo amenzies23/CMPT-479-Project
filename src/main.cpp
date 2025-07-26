@@ -90,7 +90,7 @@ void saveSystemStateToJSON(const SystemState& state, const std::string& filepath
         file << "      \"file_path\": \"" << loc.file_path << "\",\n";
         file << "      \"line_number\": " << loc.line_number << ",\n";
         file << "      \"suspiciousness_score\": " << loc.suspiciousness_score << ",\n";
-        file << "      \"reason\": \"" << loc.reason << "\"\n";
+        file << "      \"function\": \"" << loc.function << "\"\n";
         file << "    }";
         if (i < state.suspicious_locations.size() - 1) file << ",";
         file << "\n";
@@ -163,8 +163,7 @@ int main(int argc, char* argv[]) {
             LOG_INFO("verbose mode enabled");
             LOG_INFO("repository URL: {}", args.repo_url);
             LOG_INFO("branch: {}", args.branch);
-            LOG_INFO("test results file: {}", args.test_results_file);
-            LOG_INFO("coverage file: {}", args.coverage_file);
+            LOG_INFO("sbfl json: {}", args.sbfl_json);
         }
 
         // create component instances
@@ -186,26 +185,24 @@ int main(int argc, char* argv[]) {
             std::move(prbot)
         );
 
-        // load data from files or create mock data
         std::vector<TestResult> test_results;
         CoverageData coverage_data;
 
         try {
-            if (std::filesystem::exists(args.test_results_file)) {
-                LOG_INFO("loading test results from: {}", args.test_results_file);
-                test_results = CLIParser::loadTestResults(args.test_results_file);
+            if (std::filesystem::exists(args.sbfl_json)) {
+                LOG_INFO("loading sbfl results from: {}", args.sbfl_json);
             } else {
-                LOG_WARN("test results file not found, using mock data");
+                LOG_WARN("sbfl results file not found, using mock data");
                 test_results = createMockTestResults();
             }
 
-            if (std::filesystem::exists(args.coverage_file)) {
-                LOG_INFO("loading coverage data from: {}", args.coverage_file);
-                coverage_data = CLIParser::loadCoverageData(args.coverage_file);
-            } else {
-                LOG_WARN("coverage file not found, using mock data");
-                coverage_data = createMockCoverageData();
-            }
+        //     if (std::filesystem::exists(args.coverage_file)) {
+        //         LOG_INFO("loading coverage data from: {}", args.coverage_file);
+        //         coverage_data = CLIParser::loadCoverageData(args.coverage_file);
+        //     } else {
+        //         LOG_WARN("coverage file not found, using mock data");
+        //         coverage_data = createMockCoverageData();
+        //     }
         } catch (const std::exception& e) {
             LOG_WARN("error loading files, falling back to mock data: {}", e.what());
             test_results = createMockTestResults();
@@ -215,15 +212,15 @@ int main(int argc, char* argv[]) {
         // create repository metadata
         auto repo_metadata = CLIParser::createRepositoryMetadata(args);
 
-        if (args.verbose) {
-            LOG_INFO("loaded {} test results", test_results.size());
-            LOG_INFO("coverage: {:.1f}%", coverage_data.total_coverage_percentage);
-            LOG_INFO("found {} source files", repo_metadata.source_files.size());
-        }
+        // if (args.verbose) {
+        //     LOG_INFO("loaded {} test results", test_results.size());
+        //     LOG_INFO("coverage: {:.1f}%", coverage_data.total_coverage_percentage);
+        //     LOG_INFO("found {} source files", repo_metadata.source_files.size());
+        // }
 
         // run the pipeline
         LOG_INFO("running APR project pipeline...");
-        auto system_state = orchestrator->runPipeline(repo_metadata, test_results, coverage_data);
+        auto system_state = orchestrator->runPipeline(repo_metadata, args.sbfl_json);
 
         // create output directory
         std::filesystem::create_directories(args.output_dir);

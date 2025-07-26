@@ -1,47 +1,65 @@
+#include <algorithm>
+#include <fstream>
+#include <nlohmann/json.hpp>
 #include "sbfl.h"
 #include "../core/logger.h"
+#include <iostream>
 
 namespace apr_system {
 
-std::vector<SuspiciousLocation> SBFL::localizeFaults(
-    const std::vector<TestResult>& test_results,
-    const CoverageData& coverage_data
-) {
-    LOG_COMPONENT_INFO("sbfl", "this is a stub implementation");
-    LOG_COMPONENT_INFO("sbfl", "input: {} test results, {} coverage lines",
-                       test_results.size(), coverage_data.line_coverage.size());
+std::vector<SuspiciousLocation> SBFL::localizeFaults(const std::string& sbfl_json) {
+    std::vector<SuspiciousLocation> locations;
+    LOG_COMPONENT_INFO("sbfl", "parsing JSON results from: {}", sbfl_json);
 
     /*
      * TODO: implement fault localization algorithm here
      *
      * input contracts:
-     * - test_results: array of test execution results with pass/fail status
-     * - coverage_data: line-by-line coverage information
+     * - sbfl_json: sbfl json result file path 
      *
      * output contract:
      * - return SuspiciousLocation objects sorted by suspiciousness score (descending)
      * - each location must have valid file_path, line_number, and score 0.0-1.0
      */
 
-    // mock data for testing data flow -> remove it when implementing
-    std::vector<SuspiciousLocation> mock_locations;
+    try {
+        std::ifstream file(sbfl_json);
+        if (!file.is_open()) {
+            throw std::runtime_error("failed to open output file: " + sbfl_json);
+        }
 
-    // create mock suspicious locations based on input data
-    for (size_t i = 0; i < std::min(size_t(3), coverage_data.line_coverage.size()); ++i) {
-        const auto& line_cov = coverage_data.line_coverage[i];
+        nlohmann::json data = nlohmann::json::parse(file);
 
-        SuspiciousLocation location{
-            .file_path = line_cov.file_path,
-            .line_number = line_cov.line_number,
-            .suspiciousness_score = 0.8 - (i * 0.2),
-            .reason = "[STUB] mock suspicious location for testing data flow"
-        };
+        if (data.contains("data")) {
+            const auto& data_array = data["data"];
+            LOG_COMPONENT_INFO("sbfl", "found {} entries in data array", data_array.size());
 
-        mock_locations.push_back(location);
+            for (const auto& item : data_array) {
+                SuspiciousLocation location;
+                std::string full_path = item.value("file", "unknown");
+
+                // extract the relative path
+                std::string marker = "src/testing_mock/src/";
+                size_t pos = full_path.find(marker);
+                location.file_path = full_path.substr(pos);
+
+                location.function = item.value("function", "unknown");
+                location.line_number = item.value("line", 0);
+                location.suspiciousness_score = item.value("score", 0.0);
+                locations.push_back(location);
+            }
+
+            // sort by suspicious score (descending)
+            std::sort(locations.begin(), locations.end(), 
+                [](const SuspiciousLocation& a, const SuspiciousLocation& b) {
+                    return a.suspiciousness_score > b.suspiciousness_score;
+                });
+        }
+    } catch (const std::exception& e) {
+        LOG_COMPONENT_ERROR("sbfl", "error parsing JSON results: {}", e.what());
     }
 
-    LOG_COMPONENT_INFO("sbfl", "stub returning {} mock suspicious locations", mock_locations.size());
-    return mock_locations;
+    return locations;
 }
 
 } // namespace apr_system

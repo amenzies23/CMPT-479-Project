@@ -27,14 +27,13 @@ public:
    * scores
    * 4. return sorted list of suspicious locations
    *
-   * @param test_results test execution results with pass/fail status
-   * @param coverage_data line-by-line code coverage information
+   * @param sbfl_json Path to json file containing SBFL scores
+   * 
    * @return vector of suspicious locations ranked by suspiciousness score
    * (0.0-1.0)
    */
   std::vector<SuspiciousLocation>
-  localizeFaults(const std::vector<TestResult> &test_results,
-                 const CoverageData &coverage_data) override;
+  localizeFaults(const std::string& sbfl_json) override;
 };
 
 } // namespace apr_system

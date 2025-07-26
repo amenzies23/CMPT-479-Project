@@ -15,13 +15,11 @@ public:
 
   /**
    * @brief run fault localization on test results and coverage data
-   * @param test_results test execution results
-   * @param coverage_data code coverage information
+   * @param sbfl_json path to json containing SBFL scores 
    * @return vector of suspicious locations ranked by suspiciousness score
    */
   virtual std::vector<SuspiciousLocation>
-  localizeFaults(const std::vector<TestResult> &test_results,
-                 const CoverageData &coverage_data) = 0;
+  localizeFaults(const std::string& sbfl_json) = 0;
 };
 
 /**
@@ -127,13 +125,11 @@ public:
   /**
    * @brief run the complete apr project pipeline
    * @param repo_metadata repository metadata
-   * @param test_results test execution results
-   * @param coverage_data code coverage information
+   * @param sbfl_json path to sbfl results
    * @return complete system state after pipeline execution
    */
   virtual SystemState runPipeline(const RepositoryMetadata &repo_metadata,
-                                  const std::vector<TestResult> &test_results,
-                                  const CoverageData &coverage_data) = 0;
+                                  const std::string &sbfl_json) = 0;
 
   /**
    * @brief set component dependencies
