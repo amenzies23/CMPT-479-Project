@@ -1,7 +1,13 @@
 #include <cassert>
 
-#include "add.h"
+#include "calculator.h"
 
 int main() {
-    Add add = Add(1, 0);
+    Calculator calc(10, 5);
+    assert(calc.add() == 15);
+    assert(calc.subtract() == 5);
+    assert(calc.multiply() == 50);
+    assert(calc.divide() == 2.0);
+    assert(calc.area_rectangle() == 50);
+    return 0;
 }

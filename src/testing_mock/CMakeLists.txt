@@ -13,11 +13,11 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "-O0 -coverage")
 set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE ON)
 
-add_library(add_lib src/add.cpp)
-target_include_directories(add_lib PUBLIC include)
+add_library(calculator_lib src/calculator.cpp)
+target_include_directories(calculator_lib PUBLIC include)
 
-add_executable(add src/main.cpp)
-target_link_libraries(add add_lib)
+add_executable(calculator src/main.cpp)
+target_link_libraries(calculator calculator_lib)
 
 enable_testing()
 add_subdirectory(tests)

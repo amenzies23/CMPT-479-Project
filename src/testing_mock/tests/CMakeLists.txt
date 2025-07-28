@@ -1,6 +1,6 @@
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/tests")
 
-function(add_gcov_tests TEST_SRC TEST_GROUP_NAME LIBRARIES)
+function(calculator_gcov_tests TEST_SRC TEST_GROUP_NAME LIBRARIES)
   set(test_file "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_SRC}.cpp")
   set(test_name "${TEST_GROUP_NAME}")
 
@@ -17,8 +17,8 @@ add_custom_target(gcov_${test_name}
   COMMAND mkdir -p ${COVERAGE_DIR}
   COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcda" -delete # need to clear the coverage data
   COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${test_name} || echo "Test completed"
-  COMMAND gcov -b ${CMAKE_SOURCE_DIR}/src/add.cpp -o ${CMAKE_BINARY_DIR}/CMakeFiles/add_lib.dir/src
-  COMMAND cp add.cpp.gcov ${COVERAGE_DIR}/
+  COMMAND gcov -b ${CMAKE_SOURCE_DIR}/src/calculator.cpp -o ${CMAKE_BINARY_DIR}/CMakeFiles/calculator_lib.dir/src
+  COMMAND cp calculator.cpp.gcov ${COVERAGE_DIR}/
   COMMAND rm -f *.gcov
 )
 
@@ -31,7 +31,7 @@ add_custom_target(gcov_${test_name}
 
   add_dependencies(gcov_all gcov_${TEST_GROUP_NAME})
 
-endfunction(add_gcov_tests)
+endfunction(calculator_gcov_tests)
 
 add_custom_target(gcov_clean
   COMMAND rm -rf ${CMAKE_BINARY_DIR}/coverage
@@ -43,8 +43,9 @@ add_custom_target(gcov_clean
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
-add_gcov_tests("test_zero" "zero" "add_lib")
-add_gcov_tests("test_positive" "positive" "add_lib")
-add_gcov_tests("test_negative" "negative" "add_lib")
-add_gcov_tests("test_mixed" "mixed" "add_lib")
-add_gcov_tests("test_with_zero" "with_zero" "add_lib")
+file(GLOB TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")
+foreach(test_src ${TEST_SOURCES})
+    get_filename_component(test_name ${test_src} NAME_WE)
+    string(REPLACE "test_" "" test_group_name ${test_name})
+    calculator_gcov_tests("${test_name}" "${test_group_name}" "calculator_lib")
+endforeach()
