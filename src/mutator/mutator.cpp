@@ -1,5 +1,6 @@
 #include "mutator.h"
 #include "../core/logger.h"
+#include <fstream> 
 
 namespace apr_system {
 
@@ -23,6 +24,54 @@ std::vector<PatchCandidate> Mutator::generatePatches(
      * - each patch should have original_code, modified_code, and diff
      * - mutation_type should indicate the type of change applied
      */
+
+    std::vector<const ASTNode*> targets, ingredients;
+    for (auto &node : ast_nodes) {
+        if (node.suspiciousness_score > 0.0) {
+            targets.push_back(&node);
+        } else {
+            ingredients.push_back(&node);
+        }
+    }
+
+    // For testing: Using to confirm if the context / node info is being stored properly. 
+    // Will remove in a later commit - but useful to check as we test the functionailtiy of the mutator component.
+    std::ofstream out("SuspiciousNodes.txt");
+    if (out) {
+        for (auto *n : targets) {
+            out
+              << "node_id: "   << n->node_id
+              << ", type: "    << n->node_type
+              << ", file: "    << n->file_path
+              << ", range: ["  << n->start_line << "," << n->start_column
+              << "] - ["      << n->end_line   << "," << n->end_column
+              << "]\n";
+            
+            out << "Sus_score" << n->suspiciousness_score << "\n";
+
+            // genealogy context
+            out << "  genealogy_context: {";
+            for (auto &kv : n->genealogy_context.type_counts) {
+                out << kv.first << ":" << kv.second << ", ";
+            }
+            out << "}\n";
+
+            // variable context
+            out << "  variable_context: {";
+            for (auto &kv : n->variable_context.var_counts) {
+                out << kv.first << ":" << kv.second << ", ";
+            }
+            out << "}\n";
+
+            // dependency context
+            out << "  dependency_context: {";
+            for (auto &kv : n->dependency_context.slice_counts) {
+                out << kv.first << ":" << kv.second << ", ";
+            }
+            out << "}\n\n";
+        }
+        out.close();
+    }
 
     // mock data for testing data flow - remove when implementing
     std::vector<PatchCandidate> mock_patches;
