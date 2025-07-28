@@ -79,7 +79,11 @@ std::vector<PrioritizedPatch> Prioritizer::prioritizePatches(
         mock_prioritized.push_back(prioritized);
     }
 
-    // printPrioritizedPatches(mock_prioritized);
+    std::sort(mock_prioritized.begin(), mock_prioritized.end(), 
+            [](const PrioritizedPatch& a, const PrioritizedPatch& b) {
+                    return a.priority_score > b.priority_score;
+    });
+    printPrioritizedPatches(mock_prioritized);
 
     LOG_COMPONENT_INFO("prioritizer", "stub returning {} mock prioritized patches", mock_prioritized.size());
     return mock_prioritized;
