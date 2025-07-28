@@ -164,6 +164,7 @@ int main(int argc, char* argv[]) {
             LOG_INFO("repository URL: {}", args.repo_url);
             LOG_INFO("branch: {}", args.branch);
             LOG_INFO("sbfl json: {}", args.sbfl_json);
+            LOG_INFO("mutation frequency json: {}", args.mutation_freq_json);
         }
 
         // create component instances
@@ -196,6 +197,10 @@ int main(int argc, char* argv[]) {
                 test_results = createMockTestResults();
             }
 
+            if (std::filesystem::exists(args.mutation_freq_json)) {
+                LOG_INFO("loading mutation frequencies from: {}", args.mutation_freq_json);
+            }
+
         //     if (std::filesystem::exists(args.coverage_file)) {
         //         LOG_INFO("loading coverage data from: {}", args.coverage_file);
         //         coverage_data = CLIParser::loadCoverageData(args.coverage_file);
@@ -220,7 +225,7 @@ int main(int argc, char* argv[]) {
 
         // run the pipeline
         LOG_INFO("running APR project pipeline...");
-        auto system_state = orchestrator->runPipeline(repo_metadata, args.sbfl_json);
+        auto system_state = orchestrator->runPipeline(repo_metadata, args.sbfl_json, args.mutation_freq_json);
 
         // create output directory
         std::filesystem::create_directories(args.output_dir);

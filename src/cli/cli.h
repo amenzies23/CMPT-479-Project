@@ -14,6 +14,7 @@ struct CLIArgs {
   std::string branch;
   std::string commit_hash;
   std::string sbfl_json;
+  std::string mutation_freq_json;
   std::string output_dir;
   std::string config_file;
   int max_patches;

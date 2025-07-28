@@ -1,0 +1,38 @@
+{
+  "Replacement": [
+    { "target": "Simple_Name", "freq": 0.1721 },
+    { "target": "String_Literal", "freq": 0.1310 },
+    { "target": "Infix_Expression", "freq": 0.0201 },
+    { "target": "Qualified_Name", "freq": 0.0197 },
+    { "target": "Conditional_Expression", "freq": 0.0135 },
+    { "target": "Simple_Type", "freq": 0.0082 },
+    { "target": "Boolean_Literal", "freq": 0.0075 },
+    { "target": "Parameterized_Type", "freq": 0.0038 },
+    { "target": "Primitive_Type", "freq": 0.0009 },
+    { "target": "Assignment", "freq": 0.0003 }
+  ],
+  "Insertion": [
+    { "target": "Expression_Statement", "source": "Method_Declaration", "freq": 0.0815 },
+    { "target": "Simple_Name", "source": "Method_Invocation", "freq": 0.0313 },
+    { "target": "Expression_Statement", "source": "If_Statement", "freq": 0.0304 },
+    { "target": "Method_Invocation", "source": "Method_Invocation", "freq": 0.0282 },
+    { "target": "If_Statement", "source": "If_Statement", "freq": 0.0141 },
+    { "target": "Infix_Expression", "source": "Method_Invocation", "freq": 0.0125 },
+    { "target": "Qualified_Name", "source": "Method_Invocation", "freq": 0.0075 },
+    { "target": "Expression_Statement", "source": "Try_Statement", "freq": 0.0075 },
+    { "target": "If_Statement", "source": "Method_Declaration", "freq": 0.0063 },
+    { "target": "Boolean_Literal", "source": "Method_Invocation", "freq": 0.0047 }
+  ],
+  "Deletion": [
+    { "target": "Simple_Name", "source": "Method_Invocation", "freq": 0.0191 },
+    { "target": "Expression_Statement", "source": "Method_Declaration", "freq": 0.0157 },
+    { "target": "Infix_Expression", "source": "If_Statement", "freq": 0.0144 },
+    { "target": "Method_Invocation", "source": "Method_Invocation", "freq": 0.0144 },
+    { "target": "Expression_Statement", "source": "If_Statement", "freq": 0.0072 },
+    { "target": "Infix_Expression", "source": "Method_Invocation", "freq": 0.0066 },
+    { "target": "Prefix_Expression", "source": "If_Expression", "freq": 0.0041 },
+    { "target": "Boolean_Literal", "source": "Method_Invocation", "freq": 0.0038 },
+    { "target": "Expression_Statement", "source": "Catch_Clause", "freq": 0.0031 },
+    { "target": "Method_Invocation", "source": "Infix_Expression", "freq": 0.0028 }
+  ]
+}

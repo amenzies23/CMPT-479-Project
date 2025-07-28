@@ -73,7 +73,7 @@ public:
    */
   virtual std::vector<PrioritizedPatch>
   prioritizePatches(const std::vector<PatchCandidate> &patch_candidates,
-                    const std::vector<TestResult> &test_results) = 0;
+                    const std::string &mutation_freq_json) = 0;
 };
 
 /**
@@ -129,7 +129,8 @@ public:
    * @return complete system state after pipeline execution
    */
   virtual SystemState runPipeline(const RepositoryMetadata &repo_metadata,
-                                  const std::string &sbfl_json) = 0;
+                                  const std::string &sbfl_json,
+                                  const std::string &mutation_freq_json) = 0;
 
   /**
    * @brief set component dependencies

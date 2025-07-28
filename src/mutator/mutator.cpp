@@ -51,30 +51,39 @@ std::vector<PatchCandidate> Mutator::generatePatches(
     }
     */
 
-    // more simple mock patches
-    PatchCandidate patch1;
-    patch1.patch_id = "patch_0";
-    patch1.file_path = "src/example.cpp";
-    patch1.start_line = 10;
-    patch1.end_line = 10;
-    patch1.original_code = "return false;";
-    patch1.modified_code = "return true;";
-    patch1.diff = "- return false;\n+ return true;";
-    patch1.mutation_type = "boolean_replacement";
-    patch1.affected_tests.push_back("test_example");
-    mock_patches.push_back(patch1);
+    // Mock PatchCandidate data
+    PatchCandidate mock_patch1{
+        "patch_1",
+        "src/testing_mock/src/calculator.cpp",
+        10,
+        12,
+        "int result = a + b;",
+        "int result = a - b;",
+        "- int result = a + b;\n+ int result = a - b;",
+        MutationType{"Replacement", "Infix_Expression", "Infix_Expression"},
+        {"test_add_positive", "test_add_negative"},
+        0.85,
+        0.92
+    };
 
-    PatchCandidate patch2;
-    patch2.patch_id = "patch_1";
-    patch2.file_path = "src/example.cpp";
-    patch2.start_line = 15;
-    patch2.end_line = 15;
-    patch2.original_code = "x + y";
-    patch2.modified_code = "x - y";
-    patch2.diff = "- x + y\n+ x - y";
-    patch2.mutation_type = "arithmetic_operator";
-    patch2.affected_tests.push_back("test_arithmetic");
-    mock_patches.push_back(patch2);
+    PatchCandidate mock_patch2{
+        "patch_2",
+        "src/testing_mock/src/calculator.cpp",
+        20,
+        22,
+        "return x * y;",
+        "return x / y;",
+        "- return x * y;\n+ return x / y;",
+        MutationType{"Deletion", "Method_Invocation", "Method_Invocation"},
+        {"test_multiply_positive"},
+        0.78,
+        0.88
+    };
+
+   
+    mock_patches.push_back(mock_patch1);
+
+    mock_patches.push_back(mock_patch2);
 
     LOG_COMPONENT_INFO("mutator", "stub returning {} mock patch candidates", mock_patches.size());
     return mock_patches;

@@ -13,6 +13,7 @@ CLIArgs CLIParser::parseArgs(int argc, char* argv[]) {
     args.branch = "main";
     args.commit_hash = "";
     args.sbfl_json = "../src/testing_mock/data.json";
+    args.mutation_freq_json = "../test-data/freq.json";
     args.output_dir = "apr-project-results";
     args.max_patches = 5;
     args.confidence_threshold = 0.7;
