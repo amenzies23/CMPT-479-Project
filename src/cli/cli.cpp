@@ -65,8 +65,7 @@ RepositoryMetadata CLIParser::createRepositoryMetadata(const CLIArgs& args) {
 
     // metadata.source_files.push_back("src/main.cpp");
     // metadata.source_files.push_back("src/hello_world.cpp");
-    // metadata.source_files.push_back("src/calculator.cpp");
-    metadata.source_files.push_back("src/testing_mock/src/add.cpp");
+    metadata.source_files.push_back("src/testing_mock/src/calculator.cpp");
 
     return metadata;
 }
