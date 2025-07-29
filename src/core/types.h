@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 namespace apr_system {
 
@@ -69,6 +70,27 @@ struct SuspiciousLocation {
                                  suspiciousness_score, function, reason)
 };
 
+using TypeCountMap = std::unordered_map<std::string,int>;
+
+struct GenealogyContext {
+  std::unordered_map<std::string,int> type_counts;
+
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(GenealogyContext, type_counts)
+};
+
+struct VariableContext {
+  std::unordered_map<std::string,int> var_counts;
+
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(VariableContext, var_counts)
+};
+
+struct DependencyContext {
+  TypeCountMap slice_counts;
+
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(DependencyContext, slice_counts)
+};
+
+
 /**
  * @brief ast node information
  */
@@ -84,10 +106,14 @@ struct ASTNode {
   std::vector<std::string> child_node_ids;
   double suspiciousness_score;
   std::string sbfl_reason;
+  GenealogyContext genealogy_context;
+  VariableContext variable_context;
+  DependencyContext dependency_context;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(ASTNode, node_id, node_type, start_line,
                                  end_line, start_column, end_column, file_path,
-                                 source_text, child_node_ids,suspiciousness_score,sbfl_reason)
+                                 source_text, child_node_ids,suspiciousness_score,sbfl_reason, 
+                                 genealogy_context, variable_context, dependency_context)
 };
 
 /**

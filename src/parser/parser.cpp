@@ -5,7 +5,8 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <tree_sitter/api.h>
-
+#include "../mutator/context.h"
+#include <functional>
 #include <iostream>
 
 extern "C" const TSLanguage *tree_sitter_cpp();
@@ -49,7 +50,7 @@ int get_byte_position_for_line(const std::string &source_content, int target_lin
 }
 
 // Helper, create an ASTNode from a Tree-sitter syntax tree node with SBFL metadata
-ASTNode create_ast_node(TSNode ast_Node, const std::string &source_content, 
+ASTNode create_ast_node(TSNode ast_Node, TSNode root_node, const std::string &source_content, 
                        int &unique_node_counter, const std::string& file_path,
                        double suspiciousness_score = 0.0, const std::string& sbfl_reason = "") {
     // Get where this syntax element starts and ends in the file (byte positions)
@@ -81,6 +82,11 @@ ASTNode create_ast_node(TSNode ast_Node, const std::string &source_content,
     // **NEW**: Incorporate SBFL metadata
     parsed_AST_node.suspiciousness_score = suspiciousness_score;
     parsed_AST_node.sbfl_reason = sbfl_reason;
+
+    parsed_AST_node.genealogy_context = extractGenealogyContext(ast_Node);
+    parsed_AST_node.variable_context = extractVariableContext(ast_Node, source_content);
+    parsed_AST_node.dependency_context = extractDependencyContext(ast_Node, root_node, source_content);
+
     
     return parsed_AST_node;
 }
@@ -93,25 +99,26 @@ bool correct_pos(TSNode ast_Node, uint32_t sus_byte_pos) {
 }
 
 // Helper, recursively walk through syntax tree and collect nodes that cover the suspicious position
-void walk_tree(TSNode curr_node, const std::string &source_content, uint32_t sus_byte_pos, 
-               std::vector<ASTNode>& node_AST, int &unique_node_counter, const std::string& file_path,
-               double suspiciousness_score, const std::string& sbfl_reason) {
-    // If this syntax node covers the suspicious position, add it to our collection
-    if (correct_pos(curr_node, sus_byte_pos)) {
-        ASTNode parsed_node = create_ast_node(curr_node, source_content, 
-                                            unique_node_counter, file_path,
-                                            suspiciousness_score, sbfl_reason);
-        node_AST.push_back(parsed_node);
-    }
+// void walk_tree(TSNode curr_node, TSNode root_node, const std::string &source_content, uint32_t sus_byte_pos, 
+//                std::vector<ASTNode>& node_AST, int &unique_node_counter, const std::string& file_path,
+//                double suspiciousness_score, const std::string& sbfl_reason) {
+//     // If were looking at a suspicious node, add the score in. If not, we just pass 0.0 and empty string
+//     bool is_susp = correct_pos(curr_node, sus_byte_pos);
+//     ASTNode parsed_node = create_ast_node(
+//         curr_node, root_node, source_content, unique_node_counter, file_path,
+//         is_susp ? suspiciousness_score : 0.0,  is_susp ? sbfl_reason : ""
+//     );
+
+//     node_AST.push_back(parsed_node);
     
-    // Recursively check all child syntax nodes
-    uint32_t number_of_child_nodes = ts_node_child_count(curr_node);
-    for (uint32_t child_index = 0; child_index < number_of_child_nodes; ++child_index) {
-        TSNode child_syntax_node = ts_node_child(curr_node, child_index);
-        walk_tree(child_syntax_node, source_content, sus_byte_pos, node_AST, 
-                 unique_node_counter, file_path, suspiciousness_score, sbfl_reason);
-    }
-}
+//     // Recursively check all child syntax nodes
+//     uint32_t number_of_child_nodes = ts_node_child_count(curr_node);
+//     for (uint32_t child_index = 0; child_index < number_of_child_nodes; ++child_index) {
+//         TSNode child_syntax_node = ts_node_child(curr_node, child_index);
+//         walk_tree(child_syntax_node, root_node, source_content, sus_byte_pos, node_AST, 
+//                  unique_node_counter, file_path, suspiciousness_score, sbfl_reason);
+//     }
+// }
 
 // Helper, parse a single source file into a syntax tree using Tree-sitter
 TSTree* parse_file_into_AST(const std::string& file_path, const std::string& source_content) {
@@ -173,40 +180,40 @@ parse_files_into_AST(const std::vector<std::string>& source_file_paths) {
 }
 
 // Helper, process a single suspicious location and extract relevant syntax nodes
-void process_suspicious_location(const SuspiciousLocation& sus_loc,
-                                       const std::unordered_map<std::string, TSTree*>& path_to_AST,
-                                       const std::unordered_map<std::string, std::string>& source_content_path,
-                                       std::vector<ASTNode>& node_AST,
-                                       int& unique_node_counter) {
+// void process_suspicious_location(const SuspiciousLocation& sus_loc,
+//                                        const std::unordered_map<std::string, TSTree*>& path_to_AST,
+//                                        const std::unordered_map<std::string, std::string>& source_content_path,
+//                                        std::vector<ASTNode>& node_AST,
+//                                        int& unique_node_counter) {
 
-    // Find the syntax tree for this suspicious file
-    auto lookup_AST = path_to_AST.find(sus_loc.file_path);
-    if (lookup_AST == path_to_AST.end()) {
-        LOG_COMPONENT_WARN("parser", "File not parsed: {}", sus_loc.file_path);
-        return;
-    }
+//     // Find the syntax tree for this suspicious file
+//     auto lookup_AST = path_to_AST.find(sus_loc.file_path);
+//     if (lookup_AST == path_to_AST.end()) {
+//         LOG_COMPONENT_WARN("parser", "File not parsed: {}", sus_loc.file_path);
+//         return;
+//     }
     
-    // Get the source code content and syntax tree for this file
-    const std::string& source_code_content = source_content_path.at(sus_loc.file_path);
-    TSTree* parsed_AST = lookup_AST->second;
+//     // Get the source code content and syntax tree for this file
+//     const std::string& source_code_content = source_content_path.at(sus_loc.file_path);
+//     TSTree* parsed_AST = lookup_AST->second;
     
-    LOG_COMPONENT_INFO("parser", "Processing suspicious location: line {} in file {} (score: {:.3f})", 
-                      sus_loc.line_number, sus_loc.file_path, sus_loc.suspiciousness_score);
+//     LOG_COMPONENT_INFO("parser", "Processing suspicious location: line {} in file {} (score: {:.3f})", 
+//                       sus_loc.line_number, sus_loc.file_path, sus_loc.suspiciousness_score);
     
-    // Convert the suspicious line number to a byte position in the file
-    int sus_byte_pos = get_byte_position_for_line(source_code_content, sus_loc.line_number);
-    if (sus_byte_pos == -1) {
-        LOG_COMPONENT_WARN("parser", "Suspicious line {} not found in file {}",
-                          sus_loc.line_number, sus_loc.file_path);
-        return;
-    }
+//     // Convert the suspicious line number to a byte position in the file
+//     int sus_byte_pos = get_byte_position_for_line(source_code_content, sus_loc.line_number);
+//     if (sus_byte_pos == -1) {
+//         LOG_COMPONENT_WARN("parser", "Suspicious line {} not found in file {}",
+//                           sus_loc.line_number, sus_loc.file_path);
+//         return;
+//     }
     
-    // Get the root of the syntax tree and collect all nodes covering the suspicious position
-    TSNode root_syntax_node = ts_tree_root_node(parsed_AST);
-    walk_tree(root_syntax_node, source_code_content, sus_byte_pos, node_AST, 
-             unique_node_counter, sus_loc.file_path, 
-             sus_loc.suspiciousness_score, sus_loc.reason);
-}
+//     // Get the root of the syntax tree and collect all nodes covering the suspicious position
+//     TSNode root_syntax_node = ts_tree_root_node(parsed_AST);
+//     walk_tree(root_syntax_node, root_syntax_node, source_code_content, sus_byte_pos, node_AST, 
+//              unique_node_counter, sus_loc.file_path, 
+//              sus_loc.suspiciousness_score, sus_loc.reason);
+// }
 
 // Helper, clean up Tree-sitter syntax tree memory
 void cleanup(const std::unordered_map<std::string, TSTree*>& path_to_AST) {
@@ -220,27 +227,82 @@ std::vector<ASTNode> Parser::parseAST(
     const std::vector<SuspiciousLocation>& sus_loc,
     const std::vector<std::string>& source_file_paths
 ) {
-    LOG_COMPONENT_INFO("parser", "Starting AST parse: {} suspicious locations, {} source files",
-                       sus_loc.size(), source_file_paths.size());
-    
-    // Parse all source files into syntax trees (like building a map of code structure)
-    auto [path_to_AST, source_content_path] = 
-        parse_files_into_AST(source_file_paths);
-    
-    // For each suspicious bug location, find all syntax elements that might contain the bug
+    LOG_COMPONENT_INFO("parser",
+        "Starting AST parse: {} suspicious locations, {} source files",
+        sus_loc.size(), source_file_paths.size());
+
+    auto [path_to_AST, source_content_path] = parse_files_into_AST(source_file_paths);
+
+    // Group SBFL locations by file
+    std::unordered_map<std::string,std::vector<SuspiciousLocation>> sus_by_file;
+    for (auto &sl : sus_loc) {
+        sus_by_file[sl.file_path].push_back(sl);
+    }
+
     std::vector<ASTNode> nodes_AST;
     int unique_node_counter = 0;
-    
-    for (const auto& curr_sus_loc : sus_loc) {
-        process_suspicious_location(curr_sus_loc, path_to_AST, source_content_path, nodes_AST, unique_node_counter);
+
+    // For each file, we will walk the full AST once using a helper function
+    for (auto &p : path_to_AST) {
+        const auto &file_path = p.first;
+        TSTree *tree = p.second;
+        const auto &source = source_content_path[file_path];
+
+        // Building parallel vectors of byte‐pos, score & reason
+        std::vector<uint32_t> sus_bytes;
+        std::vector<double> sus_scores;
+        std::vector<std::string> sus_reasons;
+        for (auto &sl : sus_by_file[file_path]) {
+            int byte = get_byte_position_for_line(source, sl.line_number);
+            if (byte >= 0) {
+                sus_bytes.push_back(sl.line_number);
+                sus_scores.push_back(sl.suspiciousness_score);
+                sus_reasons.push_back(sl.reason);
+            }
+        }
+
+        // Function to help recursively walk the AST once per file. 
+        std::function<void(TSNode,TSNode)> walk = [&](TSNode node, TSNode root) {
+            // Determine if this node covers any of our sus_bytes
+            double score = 0.0;
+            std::string reason;
+            auto startPoint = ts_node_start_point(node);
+            auto endPoint = ts_node_end_point(node);
+            int start_line = startPoint.row + 1;
+            int end_line = endPoint.row + 1;
+            
+            // Collecting all SBFL entries whose line falls in [start_line,end_line]
+            for (size_t i = 0; i < sus_bytes.size(); ++i) {
+                int sl = static_cast<int>(sus_bytes[i]);
+                if (sl >= start_line && sl <= end_line) {
+                    score  = sus_scores[i];
+                    reason = sus_reasons[i];
+                    break;
+                }
+            }
+
+            if (ts_node_is_named(node)) {
+                std::string type_str = ts_node_type(node);
+                if(type_str != "translation_unit" && type_str != "preproc_include"){
+                    nodes_AST.push_back(
+                        create_ast_node(node, root, source, unique_node_counter, file_path, score, reason)
+                    );
+                }
+            }
+
+            uint32_t count = ts_node_named_child_count(node);
+            for (uint32_t i = 0; i < count; ++i) {
+                walk(ts_node_named_child(node, i), root);
+            }
+        };
+
+        TSNode root = ts_tree_root_node(tree);
+        walk(root, root);
     }
-    
-    // Clean up memory used by syntax trees and return the suspicious syntax nodes
+
     cleanup(path_to_AST);
-    
-    LOG_COMPONENT_INFO("parser", "Returning {} AST nodes covering suspicious locations", 
-                      nodes_AST.size());
-    
+    LOG_COMPONENT_INFO("parser", "Returning {} AST nodes covering suspicious locations",
+                    nodes_AST.size());
     return nodes_AST;
 }
 
