@@ -32,8 +32,8 @@ namespace apr_system {
             return counts;
         }
 
-        int n = ts_node_named_child_count(parent);
-        for(int i = 0; i < n; ++i){
+        uint32_t childCount = ts_node_named_child_count(parent);
+        for(uint32_t i = 0; i < childCount; ++i){
             TSNode child = ts_node_named_child(parent, i);
             counts[ts_node_type(child)]++;
         }
@@ -69,7 +69,7 @@ namespace apr_system {
 
             if(ts_node_is_named(current)){
                 std::string node_type = ts_node_type(current);
-                if(node_type == "identifier" || node_type=="feld_identifier"){
+                if(node_type == "identifier" || node_type=="field_identifier"){
                     int beginning = ts_node_start_byte(current);
                     int end = ts_node_end_byte(current);
                     std::string name = source_content.substr(beginning, end - beginning);
@@ -80,75 +80,135 @@ namespace apr_system {
                 }
             }
 
-            int childCount = ts_node_named_child_count(current);
-            for(int i = 0; i < childCount; ++i){
+            uint32_t childCount = ts_node_named_child_count(current);
+            for(uint32_t i = 0; i < childCount; ++i){
                 stack.push_back(ts_node_named_child(current, i));
             }
         }
         return context;
     }
-    /**
-     * Given a target AST node N, we collect the set of all variables that N uses (invoking the existing extractVariable function)
-     * Then we scan the entire AST from the root to find every definition of each variable in this set that occurs *before*s N in the source.
-     * For each definition statement, we count the types of its anmed children (statement / expression nodes)
-     */
-    DependencyContext backwardSlice(TSNode target, TSNode root, const std::string &source_content){
-        DependencyContext context;
-        // First grab the variables in the scope of the target node
-        auto variableContext = extractVariableContext(target, source_content);
-        std::vector<std::string> varNames;
-        for (auto &kv : variableContext.var_counts) {
-            // Variable context is returned as a key where the name comes after the '#'
-            auto name = kv.first.substr(kv.first.find('#') + 1);
-            varNames.push_back(name);
-        }
 
-        uint32_t target_position = ts_node_start_byte(target);
+    // Helper function to determine if a given AST node is a variable definition node (to be used in slicing functions)
+    static bool is_definition_node(TSNode current, const std::string &name, uint32_t cutoff, const std::string &src) {
+        const char *type = ts_node_type(current);
 
-        for(auto &name : varNames){
-            std::vector<TSNode> stack{root};
-            while(!stack.empty()){
-                TSNode current = stack.back();
-                stack.pop_back();
-                std::string type = ts_node_type(current);
-                bool isDefinition = false;
+        // Each of these checks for a type of declaration / assignment, and returns true if it is the same name as the variable we are looking at
 
-                if(type == "init_declarator" || type == "declaration" || type == "assignment_expression"){
-                    uint32_t childCount = ts_node_named_child_count(current);
-                    for(uint32_t i = 0; i < childCount; ++i){
-                        TSNode child = ts_node_named_child(current, i);
-                        if(ts_node_is_named(child) && std::string(ts_node_type(child)) == "identifier"){
-                            uint32_t beginning = ts_node_start_byte(child);
-                            uint32_t end = ts_node_end_byte(child);
-                            if(end <= target_position && source_content.substr(beginning, end - beginning) == name){
-                                isDefinition = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                // If this is a definition node, count all the named children 
-                if(isDefinition){
-                    uint32_t count = ts_node_named_child_count(current);
-                    for(uint32_t i = 0; i < count; ++i){
-                        TSNode child = ts_node_named_child(current, i);
-                        std::string type = ts_node_type(child);
-                        context.slice_counts[type]++;
-                    }
-                }
-
-                uint32_t allChildren = ts_node_named_child_count(current);
-                for(uint32_t i = 0; i < allChildren; ++i){
-                    stack.push_back(ts_node_named_child(current, i));
+        // Local declaration
+        if (strcmp(type, "init_declarator") == 0) {
+            TSNode id = ts_node_named_child(current, 0);
+            if (!ts_node_is_null(id) && ts_node_is_named(id) && strcmp(ts_node_type(id), "identifier") == 0) {
+                uint32_t start = ts_node_start_byte(id);
+                if (start <= cutoff && src.substr(start, ts_node_end_byte(id) - start) == name) {
+                    return true;
                 }
             }
         }
+        // Constructor initializer
+        else if (strcmp(type, "field_initializer") == 0) {
+            TSNode field_id = ts_node_named_child(current, 0);
+            if (!ts_node_is_null(field_id) && ts_node_is_named(field_id) 
+                    && strcmp(ts_node_type(field_id), "field_identifier") == 0) {
+                TSNode id = ts_node_named_child(field_id, 0);
+                if (!ts_node_is_null(id) && ts_node_is_named(id) && strcmp(ts_node_type(id), "identifier") == 0) {
+                    uint32_t start = ts_node_start_byte(id);
+                    if (start <= cutoff && src.substr(start, ts_node_end_byte(id) - start) == name) {
+                        return true;
+                    }
+                }
+            }
+        }
+        // Assignment
+        else if (strcmp(type, "assignment_expression") == 0) {
+            TSNode lhs = ts_node_named_child(current, 0);
+            if (!ts_node_is_null(lhs) && ts_node_is_named(lhs)
+                && strcmp(ts_node_type(lhs), "identifier") == 0) {
+                uint32_t start = ts_node_start_byte(lhs);
+                if (start <= cutoff && src.substr(start, ts_node_end_byte(lhs) - start) == name) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // Helper function for once we find a definition node, walk to the parent and record the types of children as context
+    static void record_definition_context(TSNode node, TSNode root, DependencyContext &ctx) {
+        TSNode stmt = node;
+        while (!ts_node_is_null(stmt)) {
+            const char *type = ts_node_type(stmt);
+            if (strcmp(type, "declaration") == 0
+                || strstr(type, "statement")
+                || strstr(type, "expression")
+                || strcmp(type, "field_initializer_list") == 0) {
+                break;
+            }
+            stmt = ts_node_parent(stmt);
+        }
+        if (ts_node_is_null(stmt)) return;
+
+        // Counting only the leaf nodes
+        uint32_t childCount = ts_node_named_child_count(stmt);
+        for (uint32_t i = 0; i < childCount; ++i) {
+            TSNode child = ts_node_named_child(stmt, i);
+            if (!ts_node_is_named(child)) continue;
+            const char *type = ts_node_type(child);
+            if ( strcmp(type, "identifier") == 0
+                || strcmp(type, "primitive_type") == 0
+                || strcmp(type, "init_declarator") == 0
+                || strcmp(type, "field_identifier") == 0
+            ) {
+                ctx.slice_counts[type]++;
+            }
+        }
+    }
+
+    /**
+     * Grabs all variables used in the target node, walks the entire AST from the root and finds each definition
+     * of the variable before the end of target node. For each definition, record its context.
+     */
+    DependencyContext backwardSlice(TSNode target, TSNode root, const std::string &source_content) {
+        DependencyContext context;
+
+        // Extract the variables within the scope of this node
+        auto varCtx = extractVariableContext(target, source_content);
+        std::vector<std::string> varNames;
+        for (auto &kv : varCtx.var_counts) {
+            varNames.push_back(kv.first.substr(kv.first.find('#') + 1)); // Since the var names are stored after '#'
+        }
+
+        // Cutoff point at the end of the target
+        uint32_t cutoff = ts_node_end_byte(target);
+
+        // Traverse entire AST looking for definitions
+        std::vector<TSNode> stack{root};
+        while (!stack.empty()) {
+            TSNode current = stack.back();
+            stack.pop_back();
+            if (ts_node_is_null(current)) continue;
+
+            // Test each name
+            for (auto &name : varNames) {
+                if (is_definition_node(current, name, cutoff, source_content)) {
+                    record_definition_context(current, root, context);
+                    break;
+                }
+            }
+
+            // Recurse on the children
+            uint32_t childCount = ts_node_named_child_count(current);
+            for (uint32_t i = 0; i < childCount; ++i) {
+                TSNode child = ts_node_named_child(current, i);
+                if (!ts_node_is_null(child)) stack.push_back(child);
+            }
+        }
+
         return context;
     }
 
     /**
      * Similar logic to the backward slice. We take a target node N, collect the set of variables that N defines. 
-     * Then scan the entire AST for every use of these variables that occur *after* N in the source code. 
+     * Then scan the AST for every use of these variables that occur *after* N in the source code. 
      * For each use site, we locate its nearest enclosing statement/expression and count the types of the nodes named children.
      */
     DependencyContext forwardSlice(TSNode target, TSNode root, const std::string &source_content){
@@ -161,37 +221,54 @@ namespace apr_system {
             auto name = kv.first.substr(kv.first.find('#') + 1);
             variableNames.push_back(name);
         }
-        uint32_t tpos = ts_node_end_byte(target);
 
-        for (auto &name : variableNames) {
-            std::vector<TSNode> stack{root};
-            while (!stack.empty()) {
-                TSNode current = stack.back(); 
-                stack.pop_back();
+        uint32_t target_end = ts_node_end_byte(target);
 
-                if (ts_node_is_named(current) &&
-                    std::string(ts_node_type(current)) == "identifier") {
-                    uint32_t beginning = ts_node_start_byte(current);
-                    uint32_t end = ts_node_end_byte(current);
-                    if (beginning >= tpos && source_content.substr(beginning, end - beginning) == name) {
-                        // Find enclosing statements / expressions
-                        TSNode stmt = ts_node_parent(current);
-                        while (!ts_node_is_null(stmt) && !strstr(ts_node_type(stmt), "statement") && !strstr(ts_node_type(stmt), "expression")) {
-                            stmt = ts_node_parent(stmt);
-                        }
-                        if (!ts_node_is_null(stmt)) {
-                            uint32_t c = ts_node_named_child_count(stmt);
-                            for (uint32_t i = 0; i < c; ++i) {
-                                TSNode ch = ts_node_named_child(stmt, i);
-                                context.slice_counts[ts_node_type(ch)]++;
+        std::vector<TSNode> stack{ root };
+        while (!stack.empty()) {
+            TSNode current = stack.back();
+            stack.pop_back();
+
+            // we only care about named identifier uses
+            if (ts_node_is_named(current)
+                && std::string(ts_node_type(current)) == "identifier")
+            {
+                // Extract its name and its byte‐range
+                uint32_t beginning = ts_node_start_byte(current);
+                uint32_t end = ts_node_end_byte(current);
+                std::string name = source_content.substr(beginning, end - beginning);
+
+                // If this identifier matches one of our varNames AND it occurs after the target end, it's a use site
+                if (beginning >= target_end
+                    && std::find(variableNames.begin(), variableNames.end(), name) != variableNames.end())
+                {
+                    // Climb up to the nearest statement/expression
+                    TSNode stmt = ts_node_parent(current);
+                    while (!ts_node_is_null(stmt) && !strstr(ts_node_type(stmt), "statement")
+                           && !strstr(ts_node_type(stmt), "expression"))
+                    {
+                        stmt = ts_node_parent(stmt);
+                    }
+
+                    // Record the context of each child
+                    if (!ts_node_is_null(stmt)) {
+                        uint32_t childCount = ts_node_named_child_count(stmt);
+                        for (uint32_t i = 0; i < childCount; ++i) {
+                            TSNode child = ts_node_named_child(stmt, i);
+                            if (ts_node_is_named(child)) {
+                                context.slice_counts[ ts_node_type(child) ]++;
                             }
                         }
                     }
                 }
+            }
 
-                uint32_t all = ts_node_named_child_count(current);
-                for (uint32_t i = 0; i < all; ++i) {
-                    stack.push_back(ts_node_named_child(current, i));
+            // Push the rest of the children to continue iterating
+            uint32_t childCount = ts_node_named_child_count(current);
+            for (uint32_t i = 0; i < childCount; ++i) {
+                TSNode child = ts_node_named_child(current, i);
+                if (!ts_node_is_null(child)){
+                    stack.push_back(child);
                 }
             }
         }

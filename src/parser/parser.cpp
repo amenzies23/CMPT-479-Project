@@ -85,7 +85,8 @@ ASTNode create_ast_node(TSNode ast_Node, TSNode root_node, const std::string &so
 
     parsed_AST_node.genealogy_context = extractGenealogyContext(ast_Node);
     parsed_AST_node.variable_context = extractVariableContext(ast_Node, source_content);
-    parsed_AST_node.dependency_context =extractDependencyContext(ast_Node, root_node, source_content);
+    parsed_AST_node.dependency_context = extractDependencyContext(ast_Node, root_node, source_content);
+
     
     return parsed_AST_node;
 }
@@ -236,7 +237,6 @@ std::vector<ASTNode> Parser::parseAST(
     std::unordered_map<std::string,std::vector<SuspiciousLocation>> sus_by_file;
     for (auto &sl : sus_loc) {
         sus_by_file[sl.file_path].push_back(sl);
-        std::cout << sl.suspiciousness_score;
     }
 
     std::vector<ASTNode> nodes_AST;
@@ -255,7 +255,7 @@ std::vector<ASTNode> Parser::parseAST(
         for (auto &sl : sus_by_file[file_path]) {
             int byte = get_byte_position_for_line(source, sl.line_number);
             if (byte >= 0) {
-                sus_bytes.push_back(static_cast<uint32_t>(byte));
+                sus_bytes.push_back(sl.line_number);
                 sus_scores.push_back(sl.suspiciousness_score);
                 sus_reasons.push_back(sl.reason);
             }
@@ -266,22 +266,33 @@ std::vector<ASTNode> Parser::parseAST(
             // Determine if this node covers any of our sus_bytes
             double score = 0.0;
             std::string reason;
-            uint32_t start = ts_node_start_byte(node), end  = ts_node_end_byte(node);
+            auto startPoint = ts_node_start_point(node);
+            auto endPoint = ts_node_end_point(node);
+            int start_line = startPoint.row + 1;
+            int end_line = endPoint.row + 1;
+            
+            // Collecting all SBFL entries whose line falls in [start_line,end_line]
             for (size_t i = 0; i < sus_bytes.size(); ++i) {
-                if (sus_bytes[i] >= start && sus_bytes[i] <= end) {
+                int sl = static_cast<int>(sus_bytes[i]);
+                if (sl >= start_line && sl <= end_line) {
                     score  = sus_scores[i];
                     reason = sus_reasons[i];
                     break;
                 }
             }
 
-            nodes_AST.push_back(
-                create_ast_node(node, root, source, unique_node_counter, file_path, score, reason)
-            );
+            if (ts_node_is_named(node)) {
+                std::string type_str = ts_node_type(node);
+                if(type_str != "translation_unit" && type_str != "preproc_include"){
+                    nodes_AST.push_back(
+                        create_ast_node(node, root, source, unique_node_counter, file_path, score, reason)
+                    );
+                }
+            }
 
-            uint32_t count = ts_node_child_count(node);
+            uint32_t count = ts_node_named_child_count(node);
             for (uint32_t i = 0; i < count; ++i) {
-                walk(ts_node_child(node, i), root);
+                walk(ts_node_named_child(node, i), root);
             }
         };
 

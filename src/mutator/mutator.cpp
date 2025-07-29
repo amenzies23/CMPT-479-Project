@@ -47,7 +47,9 @@ std::vector<PatchCandidate> Mutator::generatePatches(
               << "] - ["      << n->end_line   << "," << n->end_column
               << "]\n";
             
-            out << "Sus_score" << n->suspiciousness_score << "\n";
+            out << "Source_code: " << n->source_text << "\n";
+            
+            out << "Sus_score: " << n->suspiciousness_score << "\n";
 
             // genealogy context
             out << "  genealogy_context: {";
