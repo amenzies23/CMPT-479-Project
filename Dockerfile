@@ -68,3 +68,12 @@ COPY . .
 RUN /opt/vcpkg/vcpkg install --triplet=x64-linux
 
 RUN git clone --depth 1 --branch v0.20.0 https://github.com/tree-sitter/tree-sitter-cpp.git /opt/tree-sitter-cpp-grammar
+
+# Build the APR system
+RUN mkdir -p build && cd build \
+    && cmake .. \
+    && make -j4 \
+    && echo "APR system built successfully"
+
+# Set the default command
+CMD ["/bin/bash"]

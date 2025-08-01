@@ -69,7 +69,7 @@ void saveSystemStateToJSON(const SystemState& state, const std::string& filepath
     file << "    \"ast_nodes_count\": " << state.ast_nodes.size() << ",\n";
     file << "    \"patch_candidates_count\": " << state.patch_candidates.size() << ",\n";
     file << "    \"prioritized_patches_count\": " << state.prioritized_patches.size() << ",\n";
-    file << "    \"validation_results_count\": " << state.validation_results.size() << ",\n";
+    file << "    \"validation_results_count\": " << state.validation_results.size() << "\n";
     file << "  },\n";
 
     // repository metadata
@@ -91,6 +91,24 @@ void saveSystemStateToJSON(const SystemState& state, const std::string& filepath
         file << "      \"function\": \"" << loc.function << "\"\n";
         file << "    }";
         if (i < state.suspicious_locations.size() - 1) file << ",";
+        file << "\n";
+    }
+    file << "  ],\n";
+
+    file << "  \"patch_candidates\": [\n";
+    for (size_t i = 0; i < state.patch_candidates.size(); ++i) {
+        const auto& patch = state.patch_candidates[i];
+        file << "    {\n";
+        file << "      \"patch_id\": \"" << patch.patch_id << "\",\n";
+        file << "      \"file_path\": \"" << patch.file_path << "\",\n";
+        file << "      \"start_line\": " << patch.start_line << ",\n";
+        file << "      \"end_line\": " << patch.end_line << ",\n";
+        file << "      \"original_code\": \"" << patch.original_code << "\",\n";
+        file << "      \"modified_code\": \"" << patch.modified_code << "\",\n";
+        file << "      \"diff\": \"" << patch.diff << "\",\n";
+        file << "      \"mutation_type\": \"" << patch.mutation_type << "\"\n";
+        file << "    }";
+        if (i < state.patch_candidates.size() - 1) file << ",";
         file << "\n";
     }
     file << "  ],\n";
