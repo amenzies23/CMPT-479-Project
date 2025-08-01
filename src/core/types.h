@@ -15,7 +15,6 @@ struct ASTNode;
 struct PatchCandidate;
 struct PrioritizedPatch;
 struct ValidationResult;
-struct PRResult;
 
 /**
  * @brief test execution result
@@ -173,22 +172,6 @@ struct ValidationResult {
 };
 
 /**
- * @brief pull request creation result
- */
-struct PRResult {
-  std::string pr_url;
-  std::string branch_name;
-  std::string commit_hash;
-  std::string title;
-  std::string description;
-  bool success;
-  std::string error_message;
-
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(PRResult, pr_url, branch_name, commit_hash,
-                                 title, description, success, error_message)
-};
-
-/**
  * @brief repository metadata
  */
 struct RepositoryMetadata {
@@ -217,13 +200,11 @@ struct SystemState {
   std::vector<PatchCandidate> patch_candidates;
   std::vector<PrioritizedPatch> prioritized_patches;
   std::vector<ValidationResult> validation_results;
-  bool has_pr_result;
-  PRResult pr_result;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(SystemState, repo_metadata,
                                  suspicious_locations, ast_nodes,
                                  patch_candidates, prioritized_patches,
-                                 validation_results, has_pr_result, pr_result)
+                                 validation_results)
 };
 
 } // namespace apr_system
