@@ -1,0 +1,169 @@
+name: "Build & Release APR Engine"
+
+on:
+  push:
+    tags:
+      - 'v*'  # version tags like v1.2.3
+  workflow_dispatch:  # manual trigger
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/apr-system
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.set-release-tag.outputs.ReleaseTag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine release tag
+        id: set-release-tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.version }}"
+          else
+            # strip refs/tags/ prefix
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "Release tag is: $TAG"
+          echo "ReleaseTag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ steps.set-release-tag.outputs.ReleaseTag }}
+          cache-from: type=gha,scope=apr-system-release
+          cache-to: type=gha,mode=max,scope=apr-system-release
+
+      - name: Extract APR engine binary
+        run: |
+          set -e
+          RELEASE_TAG=${{ steps.set-release-tag.outputs.ReleaseTag }}
+          IMAGE=${{ env.IMAGE }}:${RELEASE_TAG}
+          echo "Extracting binary from image $IMAGE"
+
+          # Create container from the versioned image
+          container_id=$(docker create "$IMAGE")
+          trap 'docker rm -f "$container_id"' EXIT
+
+          # Copy out expected binary
+          docker cp "$container_id":/workspace/build/bin/apr_system ./apr_system
+
+          if [ ! -x ./apr_system ]; then
+            chmod +x ./apr_system || true
+          fi
+
+          if [ ! -f ./apr_system ]; then
+            echo "ERROR: apr_system binary not found in image at /workspace/build/bin/apr_system"
+            exit 1
+          fi
+
+          echo "Binary extracted:"
+          ls -lh apr_system
+
+          # Package and checksums
+          tarball="apr-system-linux-x64.tar.gz"
+          tar -czf "$tarball" apr_system
+
+          sha256sum apr_system > apr_system.sha256
+          sha256sum "$tarball" > "$tarball".sha256
+
+      - name: Create release metadata
+        run: |
+          TAG=${{ steps.set-release-tag.outputs.ReleaseTag }}
+          commit_sha=${{ github.sha }}
+          build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          image="${{ env.IMAGE }}:${TAG}"
+          binary_checksum=$(cut -d' ' -f1 apr_system.sha256)
+          archive_checksum=$(cut -d' ' -f1 apr-system-linux-x64.tar.gz.sha256)
+
+          cat > release-metadata.json <<EOF
+{
+  "version": "${TAG}",
+  "build_date": "${build_date}",
+  "commit_sha": "${commit_sha}",
+  "docker_image": "${image}",
+  "platform": "linux-x64",
+  "binary_checksum": "${binary_checksum}",
+  "archive_checksum": "${archive_checksum}"
+}
+EOF
+
+          echo "Release metadata:"
+          cat release-metadata.json
+
+      - name: Create GitHub Release and upload assets
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.set-release-tag.outputs.ReleaseTag }}
+          name: "APR Engine ${{ steps.set-release-tag.outputs.ReleaseTag }}"
+          body: |
+            ## APR Engine Release ${{ steps.set-release-tag.outputs.ReleaseTag }}
+
+            Automated Program Repair engine built from commit `${{ github.sha }}`.
+
+            ### Assets
+            - `apr_system`: Linux x64 binary (executable)
+            - `apr-system-linux-x64.tar.gz`: Compressed archive
+            - `*.sha256`: Checksum files
+            - `release-metadata.json`: Build metadata and provenance
+
+            ### Docker Image
+            ```bash
+            docker pull ${{ env.IMAGE }}:${{ steps.set-release-tag.outputs.ReleaseTag }}
+            ```
+
+            ### Quickstart
+            ```bash
+            # Download release assets (private repos require auth)
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.set-release-tag.outputs.ReleaseTag }}/apr-system-linux-x64.tar.gz
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.set-release-tag.outputs.ReleaseTag }}/apr-system-linux-x64.tar.gz.sha256
+
+            # Verify
+            sha256sum -c apr-system-linux-x64.tar.gz.sha256
+
+            # Extract & run
+            tar -xzf apr-system-linux-x64.tar.gz
+            ./apr_system --help
+            ```
+
+            Built on: $(date -u +%Y-%m-%d %H:%M:%S UTC)
+          draft: false
+          prerelease: false
+          files: |
+            apr_system
+            apr-system-linux-x64.tar.gz
+            apr_system.sha256
+            apr-system-linux-x64.tar.gz.sha256
+            release-metadata.json
+
+      - name: Output release info
+        run: |
+          echo "Released APR Engine version: ${{ steps.set-release-tag.outputs.ReleaseTag }}"
