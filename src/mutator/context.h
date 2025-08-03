@@ -29,4 +29,42 @@ DependencyContext extractDependencyContext(TSNode target,
                                            TSNode root,
                                            const std::string &source_content);
 
+double computeGenealogySimilarity(
+    const GenealogyContext &source,
+    const GenealogyContext &target
+);
+
+double computeDependencySimilarity(
+    const DependencyContext &source,
+    const DependencyContext &target
+);
+
+double computeVariableSimilarity(
+    const VariableContext &source,
+    const VariableContext &target
+);
+
+double computeReplacementSimilarity(
+    const GenealogyContext &sourceGenealogy,
+    const GenealogyContext &targetGenealogy,
+    const DependencyContext &sourceDependency,
+    const DependencyContext &targetDependency,
+    const VariableContext &sourceVariable,
+    const VariableContext &targetVariable
+);
+
+double computeInsertionSimilarity(
+    const GenealogyContext &sourceGenealogy,
+    const GenealogyContext &targetGenealogy,
+    const DependencyContext &sourceDependency,
+    const DependencyContext &targetDependency
+);
+
+double computeDeletionSimilarity(
+    const GenealogyContext &otherGenealogy,
+    const GenealogyContext &targetGenealogy,
+    const DependencyContext &otherDependency,
+    const DependencyContext &targetDependency
+);
+
 }

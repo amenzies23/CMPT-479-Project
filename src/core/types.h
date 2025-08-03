@@ -129,11 +129,14 @@ struct PatchCandidate {
   std::string diff;
   std::string mutation_type;
   std::vector<std::string> affected_tests;
+  std::string target_node_id;
+  double similarity_score;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(PatchCandidate, patch_id, file_path,
                                  start_line, end_line, original_code,
                                  modified_code, diff, mutation_type,
-                                 affected_tests)
+                                 affected_tests,target_node_id, 
+                                 similarity_score)
 };
 
 /**
