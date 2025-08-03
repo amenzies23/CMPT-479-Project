@@ -284,4 +284,113 @@ namespace apr_system {
         return back;
     }
 
+    double computeGenealogySimilarity(
+        const GenealogyContext &source,
+        const GenealogyContext &target
+    ) {
+        const auto &typeCountsSource = source.type_counts;
+        const auto &typeCountsTarget = target.type_counts;
+        int64_t numerator = 0, denominator = 0;
+
+        for (const auto &kv : typeCountsTarget) {
+            const std::string &nodeType = kv.first;
+            int countInTarget = kv.second;
+            denominator += countInTarget;
+            auto it = typeCountsSource.find(nodeType);
+            if (it != typeCountsSource.end()) {
+                numerator += std::min(countInTarget, it->second);
+            }
+        }
+
+        if (denominator == 0) return 0.0;
+        return double(numerator) / double(denominator);
+    }
+
+    double computeVariableSimilarity(
+        const VariableContext &source,
+        const VariableContext &target
+    ) {
+        std::set<std::string> varsSource, varsTarget;
+        for (const auto &kv : source.var_counts) varsSource.insert(kv.first);
+        for (const auto &kv : target.var_counts) varsTarget.insert(kv.first);
+
+        std::vector<std::string> intersection;
+        std::vector<std::string> unionSet;
+        std::set_intersection(
+            varsSource.begin(), varsSource.end(),
+            varsTarget.begin(), varsTarget.end(),
+            std::back_inserter(intersection)
+        );
+        std::set_union(
+            varsSource.begin(), varsSource.end(),
+            varsTarget.begin(), varsTarget.end(),
+            std::back_inserter(unionSet)
+        );
+
+        if (unionSet.empty()) return 0.0;
+        return double(varsSource.size() * intersection.size()) / double(unionSet.size());
+    }
+
+    double computeDependencySimilarity(
+        const DependencyContext &source,
+        const DependencyContext &target
+    ) {
+        const auto &sliceCountsSource = source.slice_counts;
+        const auto &sliceCountsTarget = target.slice_counts;
+        int64_t numerator = 0, denominator = 0;
+
+        for (const auto &kv : sliceCountsTarget) {
+            const std::string &nodeType = kv.first;
+            int countInTarget = kv.second;
+            denominator += countInTarget;
+            auto it = sliceCountsSource.find(nodeType);
+            if (it != sliceCountsSource.end()) {
+                numerator += std::min(countInTarget, it->second);
+            }
+        }
+
+        if (denominator == 0) return 0.0;
+        return double(numerator) / double(denominator);
+    }
+
+    // Similarity formulas from the capgen paper based on which operation type we are using, they invoke the above 3 formulas
+    double computeReplacementSimilarity(
+        const GenealogyContext &sourceGenealogy,
+        const GenealogyContext &targetGenealogy,
+        const DependencyContext &sourceDependency,
+        const DependencyContext &targetDependency,
+        const VariableContext &sourceVariable,
+        const VariableContext &targetVariable
+    ) {
+        // Simi_R = f_gen(source, target) * f_dep(source, target) * d_var(source, target)
+        double gSim = computeGenealogySimilarity(sourceGenealogy, targetGenealogy);
+        double dSim = computeDependencySimilarity(sourceDependency, targetDependency);
+        double vSim = computeVariableSimilarity(sourceVariable, targetVariable);
+        return gSim * dSim * vSim;
+    }
+
+    double computeInsertionSimilarity(
+        const GenealogyContext &sourceGenealogy,
+        const GenealogyContext &targetGenealogy,
+        const DependencyContext &sourceDependency,
+        const DependencyContext &targetDependency
+    ) {
+        // Simi_I = f_gen(source, target) * f_dep(source, target)
+        double gSim = computeGenealogySimilarity(sourceGenealogy, targetGenealogy);
+        double dSim = computeDependencySimilarity(sourceDependency, targetDependency);
+        return gSim * dSim;
+    }
+
+    double computeDeletionSimilarity(
+        const GenealogyContext &otherGenealogy,
+        const GenealogyContext &targetGenealogy,
+        const DependencyContext &otherDependency,
+        const DependencyContext &targetDependency
+    ) {
+        // Simi_D = (1 − f_gen(other, target)) * (1 − f_dep(other, target))
+        double gSimOther = computeGenealogySimilarity(otherGenealogy, targetGenealogy);
+        double dSimOther = computeDependencySimilarity(otherDependency, targetDependency);
+        return (1.0 - gSimOther) * (1.0 - dSimOther);
+    }
+
 }
