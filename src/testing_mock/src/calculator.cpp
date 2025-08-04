@@ -14,7 +14,7 @@ int Calculator::subtract() {
 }
 
 int Calculator::multiply() {
-    return first_operand * second_operand;
+    return first_operand + second_operand;
 }
 
 double Calculator::divide() {
@@ -36,8 +36,11 @@ double Calculator::sqrt_second() {
 
 
 double Calculator::area_rectangle() {
-     int width = first_operand;
-    int height = second_operand;
-    int result = width + height;
+    int result;
+    if (first_operand > 0 && second_operand > 0) {
+        result = multiply();
+    } else {
+        result = 0;
+    }
     return result;
 }
