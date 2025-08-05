@@ -381,7 +381,7 @@ This patch addresses a potential issue identified by static analysis.
 
 This pull request contains automated fixes generated in response to the failure in CI workflow.
 
-### ☞ Analysis Summary☛
+### ☞ Analysis Summary
 
 - **Patches Generated**: ${patchCount}
 - **Average Confidence**: ${avgConfidence}%
@@ -390,12 +390,16 @@ This pull request contains automated fixes generated in response to the failure 
 
 ### ☞ Test Results
 
+// TODO: add test results here
+
 | Scenario         | Before                | After                 |
 |------------------|-----------------------|-----------------------|
 | \`CI Build\`     | Failed                | Expected to pass      |
 | Coverage Change  | N/A                   | To be verified        |
 
 ### ☞ Confidence Breakdown
+
+// TODO: update this to reflect our actual confidence breakdown (it's mocked for now)
 
 | Confidence Level     | Count | Description                  |
 |----------------------|-------|------------------------------|
