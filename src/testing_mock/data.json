@@ -30,7 +30,7 @@
             "file": "/workspace/src/testing_mock/build/CMakeFiles/calculator_lib.dir/src/calculator.gcno///workspace/src/testing_mock/src/calculator.cpp",
             "function": "_ZN10CalculatorC2Eii",
             "line": 6,
-            "score": 0.4082482905
+            "score": 0.5270462767
         },
         {
             "file": "/workspace/src/testing_mock/build/CMakeFiles/calculator_lib.dir/src/calculator.gcno///workspace/src/testing_mock/src/calculator.cpp",
@@ -60,13 +60,13 @@
             "file": "/workspace/src/testing_mock/build/CMakeFiles/calculator_lib.dir/src/calculator.gcno///workspace/src/testing_mock/src/calculator.cpp",
             "function": "_ZN10Calculator8multiplyEv",
             "line": 16,
-            "score": 0.0
+            "score": 0.894427191
         },
         {
             "file": "/workspace/src/testing_mock/build/CMakeFiles/calculator_lib.dir/src/calculator.gcno///workspace/src/testing_mock/src/calculator.cpp",
             "function": "_ZN10Calculator8multiplyEv",
             "line": 17,
-            "score": 0.0
+            "score": 0.894427191
         },
         {
             "file": "/workspace/src/testing_mock/build/CMakeFiles/calculator_lib.dir/src/calculator.gcno///workspace/src/testing_mock/src/calculator.cpp",
@@ -132,31 +132,31 @@
             "file": "/workspace/src/testing_mock/build/CMakeFiles/calculator_lib.dir/src/calculator.gcno///workspace/src/testing_mock/src/calculator.cpp",
             "function": "_ZN10Calculator14area_rectangleEv",
             "line": 38,
-            "score": 1.0
-        },
-        {
-            "file": "/workspace/src/testing_mock/build/CMakeFiles/calculator_lib.dir/src/calculator.gcno///workspace/src/testing_mock/src/calculator.cpp",
-            "function": "_ZN10Calculator14area_rectangleEv",
-            "line": 39,
-            "score": 1.0
+            "score": 0.5163977795
         },
         {
             "file": "/workspace/src/testing_mock/build/CMakeFiles/calculator_lib.dir/src/calculator.gcno///workspace/src/testing_mock/src/calculator.cpp",
             "function": "_ZN10Calculator14area_rectangleEv",
             "line": 40,
-            "score": 1.0
+            "score": 0.5163977795
         },
         {
             "file": "/workspace/src/testing_mock/build/CMakeFiles/calculator_lib.dir/src/calculator.gcno///workspace/src/testing_mock/src/calculator.cpp",
             "function": "_ZN10Calculator14area_rectangleEv",
             "line": 41,
-            "score": 1.0
+            "score": 0.4472135955
         },
         {
             "file": "/workspace/src/testing_mock/build/CMakeFiles/calculator_lib.dir/src/calculator.gcno///workspace/src/testing_mock/src/calculator.cpp",
             "function": "_ZN10Calculator14area_rectangleEv",
-            "line": 42,
-            "score": 1.0
+            "line": 43,
+            "score": 0.316227766
+        },
+        {
+            "file": "/workspace/src/testing_mock/build/CMakeFiles/calculator_lib.dir/src/calculator.gcno///workspace/src/testing_mock/src/calculator.cpp",
+            "function": "_ZN10Calculator14area_rectangleEv",
+            "line": 45,
+            "score": 0.5163977795
         }
     ]
 }

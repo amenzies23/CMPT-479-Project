@@ -16,6 +16,8 @@ add_library(apr_system_lib
 
     mutator/mutator.h
     mutator/mutator.cpp
+    mutator/context.h
+    mutator/context.cpp 
 
     prioritizer/prioritizer.h
     prioritizer/prioritizer.cpp

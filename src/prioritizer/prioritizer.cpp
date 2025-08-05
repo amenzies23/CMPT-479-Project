@@ -5,9 +5,7 @@
 
 namespace apr_system {
 
-//
-// Helper functions to print vectors
-//
+// helper function for debugging purposes
 void printFreqMap(const std::unordered_map<std::string, std::vector<FreqEntry>>& freqMap) {
     for (const auto& [mutation, entries] : freqMap) {
         std::cout << "Mutation type: " << mutation << std::endl;
@@ -19,6 +17,7 @@ void printFreqMap(const std::unordered_map<std::string, std::vector<FreqEntry>>&
     }
 }
 
+// helper function for debugging purposes
 void printPrioritizedPatches(const std::vector<PrioritizedPatch>& patches) {
     for (const auto& patch : patches) {
         std::cout << "Patch ID: " << patch.patch_id
@@ -83,7 +82,7 @@ std::vector<PrioritizedPatch> Prioritizer::prioritizePatches(
             [](const PrioritizedPatch& a, const PrioritizedPatch& b) {
                     return a.priority_score > b.priority_score;
     });
-    printPrioritizedPatches(mock_prioritized);
+    // printPrioritizedPatches(mock_prioritized);
 
     LOG_COMPONENT_INFO("prioritizer", "stub returning {} mock prioritized patches", mock_prioritized.size());
     return mock_prioritized;
@@ -93,7 +92,7 @@ double Prioritizer::computePriorityScore(
     const PatchCandidate& patch, 
     std::unordered_map<std::string, std::vector<FreqEntry>>& freqMap 
 ) const {
-    double similarity = patch.similarity;
+    double similarity = patch.similarity_score;
     double suspiciousness_score = patch.suspiciousness_score;
     double freqScore = 0.0;
 
