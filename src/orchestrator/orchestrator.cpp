@@ -31,7 +31,8 @@ Orchestrator::Orchestrator() {
 
 SystemState Orchestrator::runPipeline(
     const RepositoryMetadata& repo_metadata,
-    const std::string& sbfl_json
+    const std::string& sbfl_json,
+    const std::string& mutation_freq_json
 ) {
     std::vector<TestResult> test_results;
     validateComponents();
@@ -79,7 +80,7 @@ SystemState Orchestrator::runPipeline(
 
     // step 4: patch prioritization
     LOG_COMPONENT_INFO("prioritizer", "prioritizing patches...");
-    state.prioritized_patches = prioritizer_->prioritizePatches(state.patch_candidates, test_results);
+    state.prioritized_patches = prioritizer_->prioritizePatches(state.patch_candidates, mutation_freq_json);
     LOG_COMPONENT_INFO("prioritizer", "patch prioritization completed - prioritized {} patches", state.prioritized_patches.size());
 
     if (state.prioritized_patches.empty()) {

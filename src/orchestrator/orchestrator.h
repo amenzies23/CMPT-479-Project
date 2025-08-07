@@ -26,7 +26,9 @@ public:
    * @return complete system state after pipeline execution
    */
   SystemState runPipeline(const RepositoryMetadata &repo_metadata,
-                          const std::string &sbfl_json) override;
+                          const std::string &sbfl_json,
+                          const std::string &mutation_freq_json
+                        ) override;
 
   /**
    * @brief set component dependencies
