@@ -328,7 +328,7 @@ namespace apr_system {
         );
 
         if (unionSet.empty()) return 0.0;
-        return double(varsSource.size() * intersection.size()) / double(unionSet.size());
+        return double(intersection.size()) / double(unionSet.size());
     }
 
     double computeDependencySimilarity(
