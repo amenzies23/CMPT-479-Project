@@ -71,7 +71,7 @@ public:
    * @param test_results test execution results for feature extraction
    * @return vector of prioritized patches sorted by priority score
    */
-  virtual std::vector<PrioritizedPatch>
+  virtual std::vector<PatchCandidate>
   prioritizePatches(const std::vector<PatchCandidate> &patch_candidates,
                     const std::string &mutation_freq_json) = 0;
 };
@@ -91,7 +91,7 @@ public:
    * @return vector of validation results
    */
   virtual std::vector<ValidationResult>
-  validatePatches(const std::vector<PrioritizedPatch> &prioritized_patches,
+  validatePatches(const std::vector<PatchCandidate> &prioritized_patches,
                   const RepositoryMetadata &repo_metadata, int top_k = 10) = 0;
 };
 

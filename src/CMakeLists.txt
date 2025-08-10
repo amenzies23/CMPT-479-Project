@@ -16,11 +16,17 @@ add_library(apr_system_lib
 
     mutator/mutator.h
     mutator/mutator.cpp
+    mutator/freq_loader.h
+    mutator/freq_loader.cpp 
+    mutator/utils.h
+    mutator/utils.cpp
     mutator/context.h
     mutator/context.cpp 
 
     prioritizer/prioritizer.h
     prioritizer/prioritizer.cpp
+    prioritizer/utils.h
+    prioritizer/utils.cpp
 
     validator/validator.h
     validator/validator.cpp

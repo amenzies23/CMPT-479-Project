@@ -143,11 +143,12 @@ struct PatchCandidate {
   std::vector<std::string> affected_tests;
   double suspiciousness_score;
   double similarity_score;
+  double priority_score; 
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(PatchCandidate, patch_id, target_node_id, file_path,
                                  start_line, end_line, original_code,
                                  modified_code, diff, mutation_type,
-                                 affected_tests, similarity_score, suspiciousness_score)
+                                 affected_tests, similarity_score, suspiciousness_score, priority_score)
 };
 
 
@@ -239,7 +240,7 @@ struct SystemState {
   std::vector<SuspiciousLocation> suspicious_locations;
   std::vector<ASTNode> ast_nodes;
   std::vector<PatchCandidate> patch_candidates;
-  std::vector<PrioritizedPatch> prioritized_patches;
+  std::vector<PatchCandidate> prioritized_patches;
   std::vector<ValidationResult> validation_results;
   bool has_pr_result;
   PRResult pr_result;

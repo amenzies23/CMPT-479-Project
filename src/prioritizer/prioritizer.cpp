@@ -2,92 +2,54 @@
 #include "../core/logger.h"
 
 
-
 namespace apr_system {
 
-// helper function for debugging purposes
-void printFreqMap(const std::unordered_map<std::string, std::vector<FreqEntry>>& freqMap) {
-    for (const auto& [mutation, entries] : freqMap) {
-        std::cout << "Mutation type: " << mutation << std::endl;
-        for (const auto& entry : entries) {
-            std::cout << "  target: " << entry.target_node
-                      << ", source: " << entry.source_node
-                      << ", freq: " << entry.freq << std::endl;
-        }
-    }
-}
-
-// helper function for debugging purposes
-void printPrioritizedPatches(const std::vector<PrioritizedPatch>& patches) {
-    for (const auto& patch : patches) {
-        std::cout << "Patch ID: " << patch.patch_id
-                  << ", Score: " << patch.priority_score
-                  << ", Ref: " << patch.patch_id_ref
-                  << ", Features: ";
-        for (const auto& feat : patch.features) {
-            std::cout << feat << "; ";
-        }
-        std::cout << "Reasoning: " << patch.reasoning << std::endl;
-    }
-}
-
-std::vector<PrioritizedPatch> Prioritizer::prioritizePatches(
+std::vector<PatchCandidate> Prioritizer::prioritizePatches(
     const std::vector<PatchCandidate>& patch_candidates,
     const std::string& mutation_freq_json
 ) {
     LOG_COMPONENT_INFO("prioritizer", "this is a stub implementation");
     LOG_COMPONENT_INFO("prioritizer", "input: {} patch candidates", patch_candidates.size());
 
-    /*
-     * TODO: implement patch prioritization here
-     *
-     * input contracts:
-     * - patch_candidates: generated patch candidates from mutator
-     * - test_results: test execution results for feature extraction
-     *
-     * output contract:
-     * - return PrioritizedPatch objects sorted by priority_score (1.0 = highest priority)
-     * - each patch should include features used for ranking and reasoning
-     */
-
-    // mock data for testing data flow -> remove it when implementing
-
-
     std::unordered_map<std::string, std::vector<FreqEntry>> freqMap = parseFrequencyFile(mutation_freq_json);
 
-    std::vector<PrioritizedPatch> mock_prioritized;
-
+    std::vector<PatchCandidate> prioritized_patches;
+    LOG_COMPONENT_INFO("prioritizer", "computing priority scores...");
     // create mock prioritized patches
     for (size_t i = 0; i < patch_candidates.size(); ++i) {
-        const PatchCandidate candidate = patch_candidates[i];
-        LOG_COMPONENT_INFO("prioritizer", "computing priority scores...");
+        PatchCandidate candidate = patch_candidates[i];
         const double score = computePriorityScore(candidate, freqMap);
-
-        PrioritizedPatch prioritized{
-            .patch_id = "prioritized_" + std::to_string(i),
-            .priority_score = score, // mock decreasing priority
-            .patch_id_ref = candidate.patch_id,
-            .features = {
-                "mutation_type:" + candidate.mutation_type.mutation_category,
-                "line_count:" + std::to_string(candidate.end_line - candidate.start_line + 1),
-                "complexity:low"
-            },
-            .reasoning = "[STUB] mock prioritization based on mutation type and location"
-        };
-
-        mock_prioritized.push_back(prioritized);
+        candidate.priority_score = score;
+        // Cuts out any patches with a score of 0
+        if (score > 0.0) {
+            prioritized_patches.push_back(std::move(candidate));
+        }
     }
 
-    std::sort(mock_prioritized.begin(), mock_prioritized.end(), 
-            [](const PrioritizedPatch& a, const PrioritizedPatch& b) {
+    std::sort(prioritized_patches.begin(), prioritized_patches.end(), 
+            [](const PatchCandidate& a, const PatchCandidate& b) {
                     return a.priority_score > b.priority_score;
     });
-    // printPrioritizedPatches(mock_prioritized);
+    // printPrioritizedPatches(prioritized_patches);
 
-    LOG_COMPONENT_INFO("prioritizer", "stub returning {} mock prioritized patches", mock_prioritized.size());
-    return mock_prioritized;
+    dumpPrioritizedPatchesToFile(prioritized_patches);
+
+    LOG_COMPONENT_INFO("prioritizer", "returning {} mock prioritized patches", prioritized_patches.size());
+    return prioritized_patches;
 }
 
+/**
+ * Note / question for devs (will remove in a later commit):
+ * Currently following the CapGen method, this computes the priority score based on the suspiciousness score, similarity score, and historical frequencies.
+ * We implemented logic for the suspiciousness and similarity ourselves, and I trust the way we did this. However, we were not
+ * able to build up real historical patch data from C++ patches. So the values inside `freq.json` are all mocked values.
+ * They follow the numbers in the CapGen paper, but some of the node types that CapGens historical data had do not match types from tree-sitter.
+ * I did my best to match similar node types, but regardless this data should not be reliable for our purposes.
+ * 
+ * I left this using the historical frequencies for now, but we may decide to scrap it all together and just build up the priority from
+ * our suspiciousness score and similarity. Its definitely something id love to have working properly with real data in the future which is why I left it,
+ * but in the scope of this project and the time remaining we may need to compromise.
+ */
 double Prioritizer::computePriorityScore(
     const PatchCandidate& patch, 
     std::unordered_map<std::string, std::vector<FreqEntry>>& freqMap 
@@ -114,6 +76,7 @@ double Prioritizer::computePriorityScore(
         }
     }
     return similarity * suspiciousness_score * freqScore;
+    // return similarity * suspiciousness_score;
 }
 
 

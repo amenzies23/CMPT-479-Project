@@ -1,145 +1,195 @@
 #include "mutator.h"
 #include "../core/logger.h"
-#include <fstream> 
 
-namespace apr_system {
+namespace apr_system
+{
+
+// Helper function to build up the diff for each patch
+std::string Mutator::makeDiff(int startLine, const std::string &orig, const std::string &mod){
+    // Count how many lines are in each snippet (lines = # newlines + 1)
+    int origLineCount = std::count(orig.begin(), orig.end(), '\n') + 1;
+    int modLineCount = std::count(mod.begin(), mod.end(), '\n') + 1;
+
+    // Begin the header
+    std::ostringstream diff;
+    diff << "@@ -" << startLine << "," << origLineCount
+        << " +" << startLine << "," << modLineCount << " @@\n";
+
+    // Emit each original line prefixed with '-'
+    {
+        std::istringstream in(orig);
+        std::string line;
+        while (std::getline(in, line)){
+            diff << "-" << line << "\n";
+        }
+    }
+
+    // Emit each modified line prefixed with '+'
+    {
+        std::istringstream in(mod);
+        std::string line;
+        while (std::getline(in, line)){
+            diff << "+" << line << "\n";
+        }
+    }
+
+    return diff.str();
+}
 
 std::vector<PatchCandidate> Mutator::generatePatches(
-    const std::vector<ASTNode>& ast_nodes,
-    const std::vector<std::string>& source_files
-) {
+    const std::vector<ASTNode> &ast_nodes,
+    const std::vector<std::string> &source_files){
     LOG_COMPONENT_INFO("mutator", "this is a stub implementation");
     LOG_COMPONENT_INFO("mutator", "input: {} AST nodes, {} source files",
-                       ast_nodes.size(), source_files.size());
+                        ast_nodes.size(), source_files.size());
 
-    /*
-     * TODO: implement patch generation here
-     *
-     * input contracts:
-     * - ast_nodes: AST nodes from parser representing code that can be mutated
-     * - source_files: original source file paths for context
-     *
-     * output contract:
-     * - return PatchCandidate objects with valid patch_id, file_path, line numbers
-     * - each patch should have original_code, modified_code, and diff
-     * - mutation_type should indicate the type of change applied
-     */
-
-    std::vector<const ASTNode*> targets, ingredients;
-    for (auto &node : ast_nodes) {
-        if (node.suspiciousness_score > 0.0) {
+    // Split up the vector of nodes into fix-ingredients and suspicious nodes
+    std::vector<const ASTNode *> targets, ingredients;
+    for (auto &node : ast_nodes){     
+        // Building up the fix-ingredients to be ALL the nodes in the file, not just the non-suspicious nodes
+        // Since supsicious nodes are all probalistic, there will be a handful of suspicious nodes that are actually valid and not broken
+        // so it makes sense to include them in the overall pool of fix ingredients
+        ingredients.push_back(&node);
+        if (node.suspiciousness_score > 0.0){
             targets.push_back(&node);
-        } else {
-            ingredients.push_back(&node);
         }
     }
 
-    // For testing: Using to confirm if the context / node info is being stored properly. 
-    // Will remove in a later commit - but useful to check as we test the functionailtiy of the mutator component.
-    std::ofstream out("SuspiciousNodes.txt");
-    if (out) {
-        for (auto *n : targets) {
-            out
-              << "node_id: "   << n->node_id
-              << ", type: "    << n->node_type
-              << ", file: "    << n->file_path
-              << ", range: ["  << n->start_line << "," << n->start_column
-              << "] - ["      << n->end_line   << "," << n->end_column
-              << "]\n";
-            
-            out << "Source_code: " << n->source_text << "\n";
-            
-            out << "Sus_score: " << n->suspiciousness_score << "\n";
+    // Helpful for debugging, prints out all suspicious nodes and fix ingredients into text files in the build directory
+    dumpSuspiciousNodes(targets);
+    dumpFixIngredients(ingredients);
 
-            // genealogy context
-            out << "  genealogy_context: {";
-            for (auto &kv : n->genealogy_context.type_counts) {
-                out << kv.first << ":" << kv.second << ", ";
-            }
-            out << "}\n";
+    std::vector<PatchCandidate> patch_candidates;
+    int id_counter = 0;
 
-            // variable context
-            out << "  variable_context: {";
-            for (auto &kv : n->variable_context.var_counts) {
-                out << kv.first << ":" << kv.second << ", ";
-            }
-            out << "}\n";
+    /**
+     * For each target (suspicious node), we iterate over all source (fix‐ingredient) nodes
+     * and apply each historical mutation rule in hist_ to generate PatchCandidate objects:
+     *
+     *   Replacement:
+     *     - Look up entries in hist_.replacement whose target_node matches t->node_type.
+     *     - Only consider source (fix ingredient) nodes s where s->node_type == t->node_type.
+     *     - Skip any multi line replacements (Only considering single-line patches for now)
+     *     - Build a diff, compute replacement similarity (genealogy × dependency × variable),
+     *       record suspiciousness and similarity scores.
+     *
+     *   Insertion:
+     *     - Look up entries in hist_.insertion matching t->node_type and s->node_type.
+     *     - Skip multi‐line insertions
+     *     - Construct the diff with orig="" and mod = s->source_text.
+     *     - Compute insertion similarity (genealogy × dependency) and record the scores
+     *
+     *   Deletion:
+     *     - Look up entries in hist_.deletion matching t->node_type and s->node_type.
+     *     - Skip multi‐line deletions.
+     *     - Construct the diff with mod="" and orig = t->source_text.
+     *     - Compute deletion similarity (genealogy × dependency), record scores.
+     */
+    for (auto *t : targets){
+        for (auto *s : ingredients){
+            // Replacement
+            for (auto &e : hist_.replacement){
+                if (e.target_node == t->node_type && s->node_type == t->node_type){
+                    auto &orig = t->source_text;
+                    auto &mod  = s->source_text;
+                    if (orig.find('\n') != std::string::npos || mod.find('\n')  != std::string::npos) continue; // skip multi-line edits
+                    if (orig == mod) continue; // skip patches with the exact same code as the original (avoid duplicates)
+                    
+                    PatchCandidate p;
+                    p.patch_id = "patch_" + std::to_string(id_counter++);
+                    p.target_node_id   = t->node_id;
+                    p.file_path = t->file_path;
+                    p.start_line = t->start_line;
+                    p.end_line = t->end_line;
+                    p.original_code = t->source_text;
+                    p.modified_code = s->source_text;
+                    p.diff = makeDiff(t->start_line,
+                                        p.original_code,
+                                        p.modified_code);
+                    p.mutation_type.mutation_category = "Replacement";
+                    p.mutation_type.target_node = t->node_type;
+                    p.mutation_type.source_node = s->node_type;
 
-            // dependency context
-            out << "  dependency_context: {";
-            for (auto &kv : n->dependency_context.slice_counts) {
-                out << kv.first << ":" << kv.second << ", ";
+                    p.suspiciousness_score = t->suspiciousness_score;
+                    p.similarity_score = computeReplacementSimilarity(
+                        s->genealogy_context, t->genealogy_context,
+                        s->dependency_context, t->dependency_context,
+                        s->variable_context, t->variable_context);
+
+                    patch_candidates.push_back(std::move(p));
+                }
             }
-            out << "}\n\n";
+
+            // Insertion
+            for (auto &e : hist_.insertion){
+                if (e.target_node == t->node_type && e.source_node == s->node_type){
+
+                    auto &orig = t->source_text;
+                    auto &mod  = s->source_text;
+                    if (orig.find('\n') != std::string::npos || mod.find('\n')  != std::string::npos) continue;
+
+                    PatchCandidate p;
+                    p.patch_id = "patch_" + std::to_string(id_counter++);
+                    p.target_node_id   = t->node_id;
+                    p.file_path = t->file_path;
+                    p.start_line = t->start_line;
+                    p.end_line = t->start_line;
+                    p.original_code = "";
+                    p.modified_code = s->source_text;
+                    p.diff = makeDiff(t->start_line,
+                                        p.original_code,
+                                        p.modified_code);
+
+                    p.mutation_type.mutation_category = "Insertion";
+                    p.mutation_type.target_node = t->node_type;
+                    p.mutation_type.source_node = s->node_type;
+
+                    p.suspiciousness_score = t->suspiciousness_score;
+                    p.similarity_score = computeInsertionSimilarity(
+                        s->genealogy_context, t->genealogy_context,
+                        s->dependency_context, t->dependency_context);
+
+                    patch_candidates.push_back(std::move(p));
+                }
+            }
+
+            // Deletion
+            for (auto &e : hist_.deletion){
+                if (e.target_node == t->node_type && e.source_node == s->node_type){
+                    auto &orig = t->source_text;
+                    auto &mod  = s->source_text;
+                    if (orig.find('\n') != std::string::npos || mod.find('\n')  != std::string::npos) continue;
+
+                    PatchCandidate p;
+                    p.patch_id = "patch_" + std::to_string(id_counter++);
+                    p.target_node_id   = t->node_id;
+                    p.file_path = t->file_path;
+                    p.start_line = t->start_line;
+                    p.end_line = t->end_line;
+                    p.original_code = t->source_text;
+                    p.modified_code = "";
+                    p.diff = makeDiff(t->start_line,
+                                        p.original_code,
+                                        p.modified_code);
+
+                    p.mutation_type.mutation_category = "Deletion";
+                    p.mutation_type.target_node = t->node_type;
+                    p.mutation_type.source_node = s->node_type;
+
+                    p.suspiciousness_score = t->suspiciousness_score;
+                    p.similarity_score = computeDeletionSimilarity(
+                        s->genealogy_context, t->genealogy_context,
+                        s->dependency_context, t->dependency_context);
+
+                    patch_candidates.push_back(std::move(p));
+                }
+            }
         }
-        out.close();
     }
+    dumpPatchCandidates(patch_candidates); 
 
-    // mock data for testing data flow - remove when implementing
-    std::vector<PatchCandidate> mock_patches;
-
-    // create mock patches for each AST node
-    /*
-    for (size_t i = 0; i < ast_nodes.size(); ++i) {
-        const auto& node = ast_nodes[i];
-
-        PatchCandidate patch{
-            .patch_id = "patch_" + std::to_string(i),
-            .file_path = node.file_path,
-            .start_line = node.start_line,
-            .end_line = node.end_line,
-            .original_code = node.source_text,
-            .modified_code = "[STUB] Modified: " + node.source_text,
-            .diff = "@@ -" + std::to_string(node.start_line) + ",1 +" + std::to_string(node.start_line) + ",1 @@\n"
-                   + "-" + node.source_text + "\n"
-                   + "+[STUB] Modified: " + node.source_text,
-            .mutation_type = i % 3 == 0 ? "arithmetic_operator" :
-                           i % 3 == 1 ? "logical_operator" : "string_literal",
-            .affected_tests = {"test_" + std::to_string(i)}
-        };
-
-        mock_patches.push_back(patch);
-    }
-    */
-
-    // Mock PatchCandidate data
-    PatchCandidate mock_patch1{
-        "patch_1",
-        "target_1",
-        "src/testing_mock/src/calculator.cpp",
-        10,
-        12,
-        "int result = a + b;",
-        "int result = a - b;",
-        "- int result = a + b;\n+ int result = a - b;",
-        MutationType{"Replacement", "identifier", ""},
-        {"test_add_positive", "test_add_negative"},
-        0.85,
-        0.92
-    };
-
-    PatchCandidate mock_patch2{
-        "patch_2",
-        "target_2",
-        "src/testing_mock/src/calculator.cpp",
-        20,
-        22,
-        "return x * y;",
-        "return x / y;",
-        "- return x * y;\n+ return x / y;",
-        MutationType{"Deletion", "identifier", "binary_expression"},
-        {"test_multiply_positive"},
-        0.78,
-        0.88
-    };
-
-   
-    mock_patches.push_back(mock_patch1);
-
-    mock_patches.push_back(mock_patch2);
-
-    LOG_COMPONENT_INFO("mutator", "stub returning {} mock patch candidates", mock_patches.size());
-    return mock_patches;
+    LOG_COMPONENT_INFO("mutator", "stub returning {} mock patch candidates", patch_candidates.size());
+    return patch_candidates;
 }
 
 } // namespace apr_system

@@ -6,15 +6,18 @@
 Calculator::Calculator(int a, int b) : first_operand(a), second_operand(b) {}
 
 int Calculator::add() {
-    return first_operand + second_operand;
+    int sum = first_operand + second_operand;
+    return sum;
 }
 
 int Calculator::subtract() {
-    return first_operand - second_operand;
+    int difference = first_operand - second_operand;
+    return difference;
 }
 
 int Calculator::multiply() {
-    return first_operand + second_operand;
+    int product = first_operand + second_operand;
+    return product;
 }
 
 double Calculator::divide() {
@@ -22,6 +25,12 @@ double Calculator::divide() {
         throw std::runtime_error("Division by zero");
     }
     return static_cast<double>(first_operand) / second_operand;
+}
+
+int Calculator::secretCalculation(){
+    int product = first_operand * second_operand;
+    int secretCalc = product + first_operand - second_operand;
+    return secretCalc;
 }
 
 double Calculator::sqrt_first() {

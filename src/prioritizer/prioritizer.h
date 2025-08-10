@@ -6,7 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
-
+#include "utils.h"
 
 namespace apr_system {
 
@@ -27,7 +27,7 @@ public:
    * @param mutation_freq_json mutation frequencies
    * @return vector of prioritized patches sorted by priority score
    */
-  std::vector<PrioritizedPatch>
+  std::vector<PatchCandidate>
   prioritizePatches(const std::vector<PatchCandidate> &patch_candidates,
                     const std::string& mutation_freq_json);
 

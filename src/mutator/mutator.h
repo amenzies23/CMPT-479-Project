@@ -3,31 +3,43 @@
 #include "../core/contracts.h"
 #include <string>
 #include <vector>
+#include <cstdio>
+#include "context.h"
+#include "freq_loader.h"
+#include "utils.h" 
 
 namespace apr_system {
 
 /**
- * @brief stub implementation of mutator (patch generator)
+ * @brief implementation of mutator (patch generator)
  *
- * this is a stub to implement patch generation.
- * currently returns mock data for testing the data flow between modules.
+ * Generates real patch candidates by matching suspicious AST nodes
+ * against available ingredients and historical mutation frequencies.
  */
 class Mutator : public IMutator {
+  HistoricalFreqs hist_;
 public:
-  Mutator() = default;
+  Mutator() : hist_( loadHistoricalFrequencies("../test-data/freq.json") ) {}
   ~Mutator() = default;
 
   /**
-   * @brief stub method for patch generation
+   * @brief generate patch candidates from AST and source files
    *
-   * @param ast_nodes AST nodes from parser representing code that can be
-   * mutated
-   * @param source_files original source file paths for context
-   * @return vector of patch candidates with mutation details
+   * For each AST node flagged as suspicious, considers all non‐suspicious
+   * ingredients, applies historical rules, computes diffs, similarity
+   * and priority scores, and returns a vector of PatchCandidate.
+   *
+   * @param ast_nodes AST nodes extracted by the parser
+   * @param source_files the list of source file paths for context
+   * @return a sorted list of PatchCandidate objects
    */
   std::vector<PatchCandidate>
   generatePatches(const std::vector<ASTNode> &ast_nodes,
                   const std::vector<std::string> &source_files) override;
+
+  static std::string makeDiff(int startLine,
+                            const std::string &orig,
+                            const std::string &mod);
 };
 
 } // namespace apr_system
