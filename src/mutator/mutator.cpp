@@ -115,7 +115,8 @@ std::vector<PatchCandidate> Mutator::generatePatches(
         MutationType{"Replacement", "identifier", ""},
         {"test_add_positive", "test_add_negative"},
         0.85,
-        0.92
+        0.92,
+        0
     };
 
     PatchCandidate mock_patch2{
@@ -130,7 +131,8 @@ std::vector<PatchCandidate> Mutator::generatePatches(
         MutationType{"Deletion", "identifier", "binary_expression"},
         {"test_multiply_positive"},
         0.78,
-        0.88
+        0.88,
+        0
     };
 
    

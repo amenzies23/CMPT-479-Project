@@ -31,7 +31,7 @@ void printPrioritizedPatches(const std::vector<PrioritizedPatch>& patches) {
     }
 }
 
-std::vector<PrioritizedPatch> Prioritizer::prioritizePatches(
+std::vector<PatchCandidate> Prioritizer::prioritizePatches(
     const std::vector<PatchCandidate>& patch_candidates,
     const std::string& mutation_freq_json
 ) {
@@ -55,37 +55,37 @@ std::vector<PrioritizedPatch> Prioritizer::prioritizePatches(
 
     std::unordered_map<std::string, std::vector<FreqEntry>> freqMap = parseFrequencyFile(mutation_freq_json);
 
-    std::vector<PrioritizedPatch> mock_prioritized;
-
+    std::vector<PatchCandidate> prioritized_patches;
+    LOG_COMPONENT_INFO("prioritizer", "computing priority scores...");
     // create mock prioritized patches
     for (size_t i = 0; i < patch_candidates.size(); ++i) {
-        const PatchCandidate candidate = patch_candidates[i];
-        LOG_COMPONENT_INFO("prioritizer", "computing priority scores...");
+        PatchCandidate candidate = patch_candidates[i];
         const double score = computePriorityScore(candidate, freqMap);
-
-        PrioritizedPatch prioritized{
-            .patch_id = "prioritized_" + std::to_string(i),
-            .priority_score = score, // mock decreasing priority
-            .patch_id_ref = candidate.patch_id,
-            .features = {
-                "mutation_type:" + candidate.mutation_type.mutation_category,
-                "line_count:" + std::to_string(candidate.end_line - candidate.start_line + 1),
-                "complexity:low"
-            },
-            .reasoning = "[STUB] mock prioritization based on mutation type and location"
-        };
-
-        mock_prioritized.push_back(prioritized);
+        candidate.priority_score = score;
+        // PrioritizedPatch prioritized{
+        //     .patch_id = "prioritized_" + std::to_string(i),
+        //     .priority_score = score, // mock decreasing priority
+        //     .patch_id_ref = candidate.patch_id,
+        //     .features = {
+        //         "mutation_type:" + candidate.mutation_type.mutation_category,
+        //         "line_count:" + std::to_string(candidate.end_line - candidate.start_line + 1),
+        //         "complexity:low"
+        //     },
+        //     .reasoning = "[STUB] mock prioritization based on mutation type and location"
+        // };
+        if (score > 0.0) {
+            prioritized_patches.push_back(std::move(candidate));
+        }
     }
 
-    std::sort(mock_prioritized.begin(), mock_prioritized.end(), 
-            [](const PrioritizedPatch& a, const PrioritizedPatch& b) {
+    std::sort(prioritized_patches.begin(), prioritized_patches.end(), 
+            [](const PatchCandidate& a, const PatchCandidate& b) {
                     return a.priority_score > b.priority_score;
     });
     // printPrioritizedPatches(mock_prioritized);
 
-    LOG_COMPONENT_INFO("prioritizer", "stub returning {} mock prioritized patches", mock_prioritized.size());
-    return mock_prioritized;
+    LOG_COMPONENT_INFO("prioritizer", "stub returning {} mock prioritized patches", prioritized_patches.size());
+    return prioritized_patches;
 }
 
 double Prioritizer::computePriorityScore(

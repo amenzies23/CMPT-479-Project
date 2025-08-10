@@ -23,7 +23,7 @@ public:
    * @return vector of validation results
    */
   std::vector<ValidationResult>
-  validatePatches(const std::vector<PrioritizedPatch> &prioritized_patches,
+  validatePatches(const std::vector<PatchCandidate> &prioritized_patches,
                   const RepositoryMetadata &repo_metadata,
                   int top_k = 10) override;
 
