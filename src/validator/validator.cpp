@@ -4,7 +4,7 @@
 namespace apr_system {
 
 std::vector<ValidationResult> Validator::validatePatches(
-    const std::vector<PrioritizedPatch>& prioritized_patches,
+    const std::vector<PatchCandidate>& prioritized_patches,
     const RepositoryMetadata& repo_metadata,
     int top_k
 ) {
@@ -39,16 +39,16 @@ std::vector<ValidationResult> Validator::validatePatches(
     for (int i = 0; i < patches_to_validate; ++i) {
         const auto& patch = prioritized_patches[i];
 
-        LOG_COMPONENT_DEBUG("validator", "validating patch {}/{}: {}", i + 1, patches_to_validate, patch.patch_id_ref);
+        LOG_COMPONENT_DEBUG("validator", "validating patch {}/{}: {}", i + 1, patches_to_validate, patch.patch_id);
 
         ValidationResult result{
-            .patch_id = patch.patch_id_ref,
+            .patch_id = patch.patch_id,
             .compilation_success = i < 2, // first 2 patches compile successfully
             .tests_passed = i == 0,       // only first patch passes tests
             .build_time_ms = 1000 + (i * 200),  // mock build times
             .test_time_ms = 500 + (i * 100),    // mock test times
-            .build_output = "[STUB] mock build output for patch " + patch.patch_id_ref,
-            .test_output = "[STUB] mock test output for patch " + patch.patch_id_ref,
+            .build_output = "[STUB] mock build output for patch " + patch.patch_id,
+            .test_output = "[STUB] mock test output for patch " + patch.patch_id,
             .error_message = i >= 2 ? "mock compilation error" : "",
             .tests_passed_count = i == 0 ? 5 : (i == 1 ? 3 : 0),
             .tests_total_count = 5
