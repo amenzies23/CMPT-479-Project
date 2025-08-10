@@ -15,6 +15,7 @@ std::vector<PatchCandidate> Prioritizer::prioritizePatches(
 
     std::vector<PatchCandidate> prioritized_patches;
     LOG_COMPONENT_INFO("prioritizer", "computing priority scores...");
+
     // create mock prioritized patches
     for (size_t i = 0; i < patch_candidates.size(); ++i) {
         PatchCandidate candidate = patch_candidates[i];
@@ -25,7 +26,7 @@ std::vector<PatchCandidate> Prioritizer::prioritizePatches(
             prioritized_patches.push_back(std::move(candidate));
         }
     }
-
+    
     std::sort(prioritized_patches.begin(), prioritized_patches.end(), 
             [](const PatchCandidate& a, const PatchCandidate& b) {
                     return a.priority_score > b.priority_score;

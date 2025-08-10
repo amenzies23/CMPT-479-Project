@@ -143,7 +143,7 @@ struct PatchCandidate {
   std::vector<std::string> affected_tests;
   double suspiciousness_score;
   double similarity_score;
-  double priority_score; 
+  double priority_score;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(PatchCandidate, patch_id, target_node_id, file_path,
                                  start_line, end_line, original_code,
