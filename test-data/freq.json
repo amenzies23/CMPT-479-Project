@@ -1,38 +1,38 @@
 {
   "Replacement": [
-    { "target": "identifier",              "freq": 0.210 },
-    { "target": "function_definition",     "freq": 0.162 },
-    { "target": "primitive_type",          "freq": 0.095 },
-    { "target": "qualified_identifier",    "freq": 0.072 },
-    { "target": "parameter_list",          "freq": 0.058 },
-    { "target": "declaration",             "freq": 0.045 },
-    { "target": "init_declarator",         "freq": 0.034 },
-    { "target": "binary_expression",       "freq": 0.028 },
-    { "target": "return_statement",        "freq": 0.019 },
-    { "target": "field_initializer_list",  "freq": 0.012 }
+    { "target": "identifier", "freq": 0.1721 }, 
+    { "target": "string_literal", "freq": 0.1310 },  
+    { "target": "binary_expression", "freq": 0.0201 },  
+    { "target": "qualified_identifier", "freq": 0.0197 },  
+    { "target": "conditional_expression", "freq": 0.0135 },
+    { "target": "type_identifier", "freq": 0.0082 }, 
+    { "target": "boolean_literal", "freq": 0.0075 }, 
+    { "target": "template_argument_list", "freq": 0.0038 }, 
+    { "target": "primitive_type", "freq": 0.0009 },
+    { "target": "assignment_expression", "freq": 0.0003 } 
   ],
   "Insertion": [
-    { "target": "compound_statement",   "source": "return_statement",    "freq": 0.120 },
-    { "target": "function_definition",  "source": "declaration",         "freq": 0.085 },
-    { "target": "declaration",          "source": "binary_expression",   "freq": 0.067 },
-    { "target": "init_declarator",      "source": "identifier",          "freq": 0.053 },
-    { "target": "parameter_list",       "source": "parameter_declaration","freq": 0.039 },
-    { "target": "field_initializer_list","source": "field_initializer",   "freq": 0.027 },
-    { "target": "argument_list",        "source": "identifier",          "freq": 0.021 },
-    { "target": "function_declarator",  "source": "qualified_identifier", "freq": 0.014 },
-    { "target": "return_statement",     "source": "identifier",          "freq": 0.009 },
-    { "target": "binary_expression",    "source": "identifier",          "freq": 0.005 }
+    { "target": "expression_statement", "source": "function_definition", "freq": 0.0815 }, 
+    { "target": "identifier", "source": "call_expression", "freq": 0.0313 }, 
+    { "target": "expression_statement", "source": "if_statement", "freq": 0.0304 }, 
+    { "target": "call_expression", "source": "call_expression", "freq": 0.0282 }, 
+    { "target": "if_statement", "source": "if_statement","freq": 0.0141 }, 
+    { "target": "binary_expression", "source": "call_expression", "freq": 0.0125 }, 
+    { "target": "qualified_identifier", "source": "call_expression", "freq": 0.0075 },
+    { "target": "expression_statement", "source": "try_statement", "freq": 0.0075 }, 
+    { "target": "if_statement", "source": "function_definition", "freq": 0.0063 }, 
+    { "target": "boolean_literal", "source": "call_expression", "freq": 0.0047 }
   ],
   "Deletion": [
-    { "target": "identifier",           "source": "binary_expression",   "freq": 0.102 },
-    { "target": "declaration",          "source": "init_declarator",      "freq": 0.079 },
-    { "target": "binary_expression",    "source": "identifier",           "freq": 0.059 },
-    { "target": "return_statement",     "source": "identifier",           "freq": 0.046 },
-    { "target": "init_declarator",      "source": "identifier",           "freq": 0.035 },
-    { "target": "field_initializer_list","source": "field_initializer",    "freq": 0.023 },
-    { "target": "parameter_list",       "source": "parameter_declaration","freq": 0.018 },
-    { "target": "compound_statement",   "source": "return_statement",     "freq": 0.012 },
-    { "target": "qualified_identifier", "source": "identifier",           "freq": 0.008 },
-    { "target": "primitive_type",       "source": "identifier",           "freq": 0.004 }
+    { "target": "identifier", "source": "call_expression", "freq": 0.0191 }, 
+    { "target": "expression_statement", "source": "function_definition", "freq": 0.0157 }, 
+    { "target": "binary_expression", "source": "if_statement", "freq": 0.0144 }, 
+    { "target": "call_expression", "source": "call_expression", "freq": 0.0144 }, 
+    { "target": "expression_statement", "source": "if_statement", "freq": 0.0072 },
+    { "target": "binary_expression", "source": "call_expression", "freq": 0.0066 },
+    { "target": "unary_expression", "source": "if_statement", "freq": 0.0041 },
+    { "target": "boolean_literal", "source": "call_expression", "freq": 0.0038 },
+    { "target": "expression_statement", "source": "catch_clause", "freq": 0.0031 },
+    { "target": "call_expression", "source": "binary_expression", "freq": 0.0028 } 
   ]
 }

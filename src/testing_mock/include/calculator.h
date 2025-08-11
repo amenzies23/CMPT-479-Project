@@ -11,6 +11,7 @@ public:
     int add();
     int subtract();
     int multiply();
+    int secretCalculation();
     double divide();
 
     double sqrt_first();
