@@ -152,24 +152,25 @@ ValidationResult Validator::validateFailingTests(const PatchCandidate& patch,
         .phase_b_artifact_path = ""
     };
 
-    std::string repo_path = ".";
+    const std::string repo_root = resolveRepoPathForPatch(patch);
 
     try {
         LOG_COMPONENT_INFO("validator", "[{}] PHASE A step 1: applying patch", patch.patch_id);
-        if (!applyPatch(patch, repo_path)) {
+        if (!applyPatch(patch, repo_root)) {
             result.error_message = "Failed to apply patch";
             return result;
         }
 
         if (isTimeBudgetExceeded(validation_start_time)) {
             result.error_message = "Time budget exceeded during build";
-            restoreOriginalCode(patch, repo_path);
+            restoreOriginalCode(patch, repo_root);
             return result;
         }
 
         LOG_COMPONENT_INFO("validator", "[{}] PHASE A step 2: building project", patch.patch_id);
         auto build_start = std::chrono::high_resolution_clock::now();
-        auto build_res_pair = buildProject(repo_path, repo_metadata.build_script, validation_start_time);
+        // run build in current working directory (build dir), not repo root
+        auto build_res_pair = buildProject(".", repo_metadata.build_script, validation_start_time);
         auto build_end = std::chrono::high_resolution_clock::now();
 
         result.build_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(build_end - build_start).count();
@@ -178,19 +179,20 @@ ValidationResult Validator::validateFailingTests(const PatchCandidate& patch,
 
         if (!build_res_pair.first) {
             result.error_message = "Compilation failed: " + build_res_pair.second;
-            restoreOriginalCode(patch, repo_path);
+            restoreOriginalCode(patch, repo_root);
             return result;
         }
 
         if (isTimeBudgetExceeded(validation_start_time)) {
             result.error_message = "Time budget exceeded during tests";
-            restoreOriginalCode(patch, repo_path);
+            restoreOriginalCode(patch, repo_root);
             return result;
         }
 
         LOG_COMPONENT_INFO("validator", "[{}] PHASE A step 3: running originally failing tests", patch.patch_id);
         auto test_start = std::chrono::high_resolution_clock::now();
-        TestRunResult tr = runGTests(repo_path, repo_metadata.test_script, patch.affected_tests,
+        // run tests from build directory
+        TestRunResult tr = runGTests(".", repo_metadata.test_script, patch.affected_tests,
                                      validation_start_time, "phase-a", patch.patch_id);
         auto test_end = std::chrono::high_resolution_clock::now();
 
@@ -211,7 +213,7 @@ ValidationResult Validator::validateFailingTests(const PatchCandidate& patch,
         result.error_message = "Exception during validation: " + std::string(e.what());
     }
 
-    bool restore_success = restoreOriginalCode(patch, repo_path);
+    bool restore_success = restoreOriginalCode(patch, repo_root);
     if (!restore_success) {
         LOG_COMPONENT_ERROR("validator", "failed to restore original code for patch");
         if (result.error_message.empty()) {
@@ -227,10 +229,10 @@ ValidationResult Validator::validateRegressionTests(const PatchCandidate& patch,
                                                     const ValidationResult& phase_a_result,
                                                     const std::chrono::high_resolution_clock::time_point& validation_start_time) {
     ValidationResult result = phase_a_result;
-    std::string repo_path = ".";
+    const std::string repo_root = resolveRepoPathForPatch(patch);
 
     try {
-        if (!applyPatch(patch, repo_path)) {
+        if (!applyPatch(patch, repo_root)) {
             result.error_message = "Failed to re-apply patch for PHASE B";
             result.tests_passed = false;
             return result;
@@ -239,27 +241,27 @@ ValidationResult Validator::validateRegressionTests(const PatchCandidate& patch,
         if (isTimeBudgetExceeded(validation_start_time)) {
             result.error_message = "Time budget exceeded during Phase B build";
             result.tests_passed = false;
-            restoreOriginalCode(patch, repo_path);
+            restoreOriginalCode(patch, repo_root);
             return result;
         }
 
-        auto build_res_pair = buildProject(repo_path, repo_metadata.build_script, validation_start_time);
+        auto build_res_pair = buildProject(".", repo_metadata.build_script, validation_start_time);
         if (!build_res_pair.first) {
             result.error_message = "PHASE B compilation failed: " + build_res_pair.second;
             result.tests_passed = false;
-            restoreOriginalCode(patch, repo_path);
+            restoreOriginalCode(patch, repo_root);
             return result;
         }
 
         if (isTimeBudgetExceeded(validation_start_time)) {
             result.error_message = "Time budget exceeded during regression tests";
             result.tests_passed = false;
-            restoreOriginalCode(patch, repo_path);
+            restoreOriginalCode(patch, repo_root);
             return result;
         }
 
         auto test_start = std::chrono::high_resolution_clock::now();
-        TestRunResult tr = runGTests(repo_path, repo_metadata.test_script, std::vector<std::string>{},
+        TestRunResult tr = runGTests(".", repo_metadata.test_script, std::vector<std::string>{},
                                      validation_start_time, "phase-b", patch.patch_id);
         auto test_end = std::chrono::high_resolution_clock::now();
 
@@ -285,7 +287,7 @@ ValidationResult Validator::validateRegressionTests(const PatchCandidate& patch,
         result.tests_passed = false;
     }
 
-    restoreOriginalCode(patch, repo_path);
+    restoreOriginalCode(patch, repo_root);
     return result;
 }
 
@@ -323,6 +325,30 @@ bool Validator::applyPatch(const PatchCandidate& patch, const std::string& repo_
         LOG_COMPONENT_ERROR("validator", "exception applying patch: {}", e.what());
         return false;
     }
+}
+
+std::string Validator::resolveRepoPathForPatch(const PatchCandidate& patch) const {
+    // try current and parent directories to find where patch.file_path exists
+    // common layouts: running from repo root ("."), from build dir ("./build"),
+    // or even deeper. we walk up to a few levels. maybe not good, but works for mvp :)
+    const std::vector<std::string> candidates = {
+        ".",
+        "..",
+        "../..",
+        "../../.."
+    };
+
+    for (const auto& base : candidates) {
+        std::filesystem::path candidate = std::filesystem::path(base) / patch.file_path;
+        std::error_code ec;
+        if (std::filesystem::exists(candidate, ec) && !ec) {
+            // return normalized base path as string
+            return std::filesystem::path(base).lexically_normal().string();
+        }
+    }
+
+    // fallback to current directory if not found
+    return ".";
 }
 
 bool Validator::restoreOriginalCode(const PatchCandidate& patch, const std::string& repo_path) {

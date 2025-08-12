@@ -130,6 +130,9 @@ private:
 
   ValidationConfig config_;
   mutable PhaseTiming phase_timing_;
+
+  // repo root resolution
+  std::string resolveRepoPathForPatch(const PatchCandidate& patch) const;
 };
 
 } // namespace apr_system
