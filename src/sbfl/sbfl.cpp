@@ -3,24 +3,30 @@
 #include <nlohmann/json.hpp>
 #include "sbfl.h"
 #include "../core/logger.h"
+#include "utils.h"
 #include <iostream>
 
 namespace apr_system {
 
+
+void SBFL::runSBFLAnalysis(const std::string& buggy_program_dir, std::string& sbfl_json) {
+    std::string coverage_dir = buggy_program_dir + "/build/coverage";
+    std::string results_json = buggy_program_dir + "/build/coverage/results.json";
+    sbfl_json = coverage_dir + "/sbfl_results.json";
+
+    std::string cmd = "/.venv/bin/python /workspace/src/sbfl/sbfl_analysis.py " + results_json + " " + coverage_dir;
+    LOG_COMPONENT_INFO("running SBFL analysis: {}", cmd);
+
+    if (std::system(cmd.c_str()) == 0) {
+        LOG_COMPONENT_INFO("SBFL results generated at: {}", sbfl_json);
+    } else {
+        LOG_COMPONENT_ERROR("sbfl", "SBFL analysis script failed to execute");
+    }
+}
+
 std::vector<SuspiciousLocation> SBFL::localizeFaults(const std::string& sbfl_json) {
     std::vector<SuspiciousLocation> locations;
     LOG_COMPONENT_INFO("sbfl", "parsing JSON results from: {}", sbfl_json);
-
-    /*
-     * TODO: implement fault localization algorithm here
-     *
-     * input contracts:
-     * - sbfl_json: sbfl json result file path 
-     *
-     * output contract:
-     * - return SuspiciousLocation objects sorted by suspiciousness score (descending)
-     * - each location must have valid file_path, line_number, and score 0.0-1.0
-     */
 
     try {
         std::ifstream file(sbfl_json);
@@ -39,11 +45,14 @@ std::vector<SuspiciousLocation> SBFL::localizeFaults(const std::string& sbfl_jso
                 std::string full_path = item.value("file", "unknown");
 
                 // extract the relative path
-                std::string marker = "src/testing_mock/src/";
+                std::string marker = "/workspace/buggy-programs/";
                 size_t pos = full_path.find(marker);
-                location.file_path = full_path.substr(pos);
+                if (pos != std::string::npos) {
+                    location.file_path = full_path.substr(pos);
+                } else {
+                    continue;
+                }
 
-                location.function = item.value("function", "unknown");
                 location.line_number = item.value("line", 0);
                 location.suspiciousness_score = item.value("score", 0.0);
                 locations.push_back(location);
@@ -54,6 +63,8 @@ std::vector<SuspiciousLocation> SBFL::localizeFaults(const std::string& sbfl_jso
                 [](const SuspiciousLocation& a, const SuspiciousLocation& b) {
                     return a.suspiciousness_score > b.suspiciousness_score;
                 });
+            
+            // dumpSuspiciousLocations(locations);
         }
     } catch (const std::exception& e) {
         LOG_COMPONENT_ERROR("sbfl", "error parsing JSON results: {}", e.what());

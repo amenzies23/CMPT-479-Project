@@ -63,11 +63,10 @@ struct SuspiciousLocation {
   std::string file_path;
   int line_number;
   double suspiciousness_score;
-  std::string function;
   std::string reason;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(SuspiciousLocation, file_path, line_number,
-                                 suspiciousness_score, function, reason)
+                                 suspiciousness_score, reason)
 };
 
 using TypeCountMap = std::unordered_map<std::string,int>;

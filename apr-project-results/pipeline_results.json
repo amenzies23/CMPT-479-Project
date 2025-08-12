@@ -1,0 +1,155 @@
+{
+  "pipeline_summary": {
+    "suspicious_locations_count": 27,
+    "ast_nodes_count": 223,
+    "patch_candidates_count": 1241,
+    "prioritized_patches_count": 0,
+    "validation_results_count": 0,
+    "pr_created": false
+  },
+  "repository_metadata": {
+    "repository_url": "https://github.com/example/repo",
+    "branch": "main",
+    "commit_hash": "abc123",
+    "source_files_count": 1
+  },
+  "suspicious_locations": [
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 17,
+      "suspiciousness_score": 1,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 18,
+      "suspiciousness_score": 1,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 19,
+      "suspiciousness_score": 1,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 53,
+      "suspiciousness_score": 0.707107,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 49,
+      "suspiciousness_score": 0.707107,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 48,
+      "suspiciousness_score": 0.707107,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 46,
+      "suspiciousness_score": 0.707107,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 5,
+      "suspiciousness_score": 0.5,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 29,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 42,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 41,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 40,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 37,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 36,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 35,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 32,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 31,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 30,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 26,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 23,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 22,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 14,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 13,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 12,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 9,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 8,
+      "suspiciousness_score": 0,
+    },
+    {
+      "file_path": "/workspace/buggy-programs/01-buggy-calculator/src/calculator.cpp",
+      "line_number": 7,
+      "suspiciousness_score": 0,
+    }
+  ],
+  "validation_results": [
+  ]
+}

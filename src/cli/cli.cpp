@@ -1,7 +1,10 @@
 #include "cli.h"
-#include "../core/logger.h"
+
+#include <filesystem>
 #include <iostream>
 #include <nlohmann/json.hpp>
+
+#include "../core/logger.h"
 
 namespace apr_system {
 
@@ -12,9 +15,10 @@ CLIArgs CLIParser::parseArgs(int argc, char* argv[]) {
     args.repo_url = "";
     args.branch = "main";
     args.commit_hash = "";
-    args.sbfl_json = "../src/testing_mock/data.json";
+    args.sbfl_json = "";
     args.mutation_freq_json = "../test-data/freq.json";
     args.output_dir = "apr-project-results";
+    args.buggy_program_dir = "";
     args.max_patches = 5;
     args.confidence_threshold = 0.7;
     args.config_file = "";
@@ -32,6 +36,8 @@ CLIArgs CLIParser::parseArgs(int argc, char* argv[]) {
             args.repo_url = argv[++i];
         } else if (arg == "--output-dir" && i + 1 < argc) {
             args.output_dir = argv[++i];
+        } else if (arg == "--buggy-program" && i + 1 < argc) {
+            args.buggy_program_dir = argv[++i];
         }
     }
 
@@ -44,6 +50,7 @@ void CLIParser::printHelp() {
     std::cout << "options:\n";
     std::cout << "  --repo-url URL       repository URL to analyze\n";
     std::cout << "  --output-dir DIR     directory to store results (default: apr-project-results)\n";
+    std::cout << " --buggy-program DIR   directory to the buggy program\n";
     std::cout << "  --verbose, -v        enable verbose output\n";
     std::cout << "  --help, -h           show this help message\n\n";
     std::cout << "example:\n";
@@ -63,11 +70,8 @@ RepositoryMetadata CLIParser::createRepositoryMetadata(const CLIArgs& args) {
     metadata.build_script = "cmake .. && make";
     metadata.test_script = "ctest";
 
-    // metadata.source_files.push_back("src/main.cpp");
-    // metadata.source_files.push_back("src/hello_world.cpp");
-    metadata.source_files.push_back("src/testing_mock/src/calculator.cpp");
-
-    return metadata;
+    metadata.source_files = findSourceFiles(args.buggy_program_dir);
+     return metadata;
 }
 
 std::vector<TestResult> CLIParser::loadTestResults(const std::string& file_path) {
@@ -130,12 +134,16 @@ CoverageData CLIParser::loadCoverageData(const std::string& file_path) {
     return coverage;
 }
 
-std::vector<std::string> CLIParser::findSourceFiles() {
+std::vector<std::string> CLIParser::findSourceFiles(const std::string& buggy_program_dir) {
     // simplified -> return static list
+    const std::string buggy_program_src = buggy_program_dir + "/src";
     std::vector<std::string> files;
-    files.push_back("src/main.cpp");
-    files.push_back("src/hello_world.cpp");
-    files.push_back("src/calculator.cpp");
+    for (const auto& entry : std::filesystem::directory_iterator(buggy_program_src)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".cpp") {
+            files.push_back(entry.path().string());
+        }
+    }
+
     return files;
 }
 
@@ -172,4 +180,4 @@ CoverageData CLIParser::createMockCoverageData() {
     return coverage;
 }
 
-} // namespace apr_system
+}  // namespace apr_system

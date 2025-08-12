@@ -1,68 +1,53 @@
 import os
-import pandas as pd
-from sbfl.utils import gcov_files_to_frame, get_sbfl_scores_from_frame
+import sys
 import json
+from sbfl.utils import gcov_files_to_frame, get_sbfl_scores_from_frame
 
-FAILED_TESTS_FILE = './src/testing_mock/build/Testing/Temporary/LastTestsFailed.log'
+if len(sys.argv) != 3:
+    print("Usage: python sbfl_analysis.py <gtest_results.json> <coverage_dir>")
+    sys.exit(1)
 
-COVERAGE_DIRECTORY = './build/coverage'
-COVERAGE_DIRECTORY = './src/testing_mock/build/coverage'
+gtest_json = sys.argv[1]
+coverage_dir = sys.argv[2]
 
+# parse json tests from the gtest json results
+with open(gtest_json, 'r') as f:
+    gtest_results = json.load(f)
 
-# format of .log file:
-# 2:positive
-def get_failing_tests_from_ctest():
-    failing_tests = []
-    
-    if os.path.exists(FAILED_TESTS_FILE):
-        with open(FAILED_TESTS_FILE, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    if ':' in line:
-                        test_name = line.split(':', 1)[1]
-                        failing_tests.append(test_name)
-    else:
-        print("FAILED_TESTS_FILE not found")
-        exit()
-    return failing_tests
+failing_tests = []
+all_tests = []
 
+for suite in gtest_results.get('testsuites', []):
+    for case in suite.get('testsuite', []):
+        test_id = f"{case.get('classname')}.{case.get('name')}"
+        all_tests.append(test_id)
+        if 'failures' in case and case['failures']:
+            failing_tests.append(test_id)
 
-# get all the 
-def find_test_coverage_directories():
-    gcov_dir = {}
-    
-    if not os.path.exists(COVERAGE_DIRECTORY):
-        print("COVERAGE_DIRECTORY not found")
-        exit()
-    
-    for item in os.listdir(COVERAGE_DIRECTORY):
-        item_path = os.path.join(COVERAGE_DIRECTORY, item)
-        
-        if os.path.isdir(item_path):
-            gcov_dir[item] = item_path
-    return gcov_dir
+# print("failing_tests:", failing_tests)
+# print("all_tests:", all_tests)
 
-gcov_dir = find_test_coverage_directories()
+if not failing_tests:
+    print("All tests passed. SBFL was not calculated.")
+    sys.exit(0)
 
-gcov_files = {test:[] for test in gcov_dir}
-for test in gcov_dir:
-    for path in os.listdir(gcov_dir[test]):
-        if path.endswith('.gcov'):
-            gcov_files[test].append(os.path.join(gcov_dir[test], path))
-    print(f"{test}: {len(gcov_files[test])} gcov files are found.")
+# build the gcov_files dictionary with test_id as key and a list of gcov files as value
+gcov_files = {}
+for test_id in all_tests:
+    test_path = os.path.join(coverage_dir, test_id)
+    if os.path.isdir(test_path):
+        gcov_files[test_id] = []
+        for file in os.listdir(test_path):
+            if file.endswith('.gcov'):
+                gcov_files[test_id].append(os.path.join(test_path, file))
 
 cov_df = gcov_files_to_frame(gcov_files, only_covered=True, verbose=False)
+# print("cov_df:", cov_df.columns)
 
-failing_tests = get_failing_tests_from_ctest()
-
-if failing_tests:
-    score_df = get_sbfl_scores_from_frame(cov_df, failing_tests=failing_tests)
-    score_df = score_df.to_json(orient="table")
-    parsed = json.loads(score_df)
-    with open('./src/testing_mock/data.json', 'w', encoding='utf-8') as f:
-        json.dump(parsed, f, ensure_ascii=False, indent=4)
-else:
-    print("all tests passed. SBFL was not calculated")
-
-
+# calculate the sbfl scores and save into json
+score_df = get_sbfl_scores_from_frame(cov_df, failing_tests=failing_tests)
+score_json = score_df.to_json(orient="table")
+parsed = json.loads(score_json)
+output_path = os.path.join(coverage_dir, 'sbfl_results.json')
+with open(output_path, 'w', encoding='utf-8') as f:
+    json.dump(parsed, f, ensure_ascii=False, indent=4)
