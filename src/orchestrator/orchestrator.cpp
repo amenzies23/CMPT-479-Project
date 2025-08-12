@@ -43,9 +43,7 @@ SystemState Orchestrator::runPipeline(
         .ast_nodes = {},
         .patch_candidates = {},
         .prioritized_patches = {},
-        .validation_results = {},
-        .has_pr_result = false,
-        .pr_result = {}
+        .validation_results = {}
     };
 
     // step 1: fault localization
