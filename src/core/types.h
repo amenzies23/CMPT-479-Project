@@ -189,12 +189,14 @@ struct ValidationResult {
   std::string error_message;
   int tests_passed_count;
   int tests_total_count;
+  std::string phase_a_artifact_path;
+  std::string phase_b_artifact_path;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(ValidationResult, patch_id,
                                  compilation_success, tests_passed,
                                  build_time_ms, test_time_ms, build_output,
                                  test_output, error_message, tests_passed_count,
-                                 tests_total_count)
+                                 tests_total_count, phase_a_artifact_path, phase_b_artifact_path)
 };
 
 /**
