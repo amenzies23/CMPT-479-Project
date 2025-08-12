@@ -156,7 +156,8 @@ int main(int argc, char* argv[]) {
         // create component instances
         auto sbfl = std::make_unique<SBFL>();
         auto parser = std::make_unique<Parser>();
-        auto mutator = std::make_unique<Mutator>();
+        // pass frequency file path to mutator so it doesn't rely on compile-time relative paths
+        auto mutator = std::make_unique<Mutator>(args.mutation_freq_json);
         auto prioritizer = std::make_unique<Prioritizer>();
         auto validator = std::make_unique<Validator>();
 
@@ -183,6 +184,9 @@ int main(int argc, char* argv[]) {
 
             if (std::filesystem::exists(args.mutation_freq_json)) {
                 LOG_INFO("loading mutation frequencies from: {}", args.mutation_freq_json);
+            } else {
+                LOG_ERROR("mutation frequency file not found: {}", args.mutation_freq_json);
+                throw std::runtime_error("missing mutation frequency json");
             }
 
         //     if (std::filesystem::exists(args.coverage_file)) {
@@ -230,8 +234,6 @@ int main(int argc, char* argv[]) {
         LOG_INFO("found {} suspicious locations", system_state.suspicious_locations.size());
         LOG_INFO("generated {} patch candidates", system_state.patch_candidates.size());
         LOG_INFO("validated {} patches", system_state.validation_results.size());
-
-        // pr creation handled by github app layer
 
         // set exit code based on whether patches were found
         if (system_state.validation_results.empty()) {

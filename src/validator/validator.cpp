@@ -99,7 +99,7 @@ void Validator::recordTotalValidationTime(const std::chrono::high_resolution_clo
 ValidationResult Validator::validatePatchTwoPhase(const PatchCandidate& patch,
                                                   const RepositoryMetadata& repo_metadata,
                                                   const std::chrono::high_resolution_clock::time_point& validation_start_time) {
-    LOG_COMPONENT_INFO("validator", "[{}] >> PHASE A: validating against originally failing tests", patch.patch_id);
+    LOG_COMPONENT_INFO("validator", "[{}] PHASE A: validating against originally failing tests", patch.patch_id);
     auto phase_a_result = timedValidation([&]() {
         return validateFailingTests(patch, repo_metadata, validation_start_time);
     }, phase_timing_.phase_a_time_ms);
@@ -110,7 +110,7 @@ ValidationResult Validator::validatePatchTwoPhase(const PatchCandidate& patch,
     }
 
     LOG_COMPONENT_INFO("validator", "[{}] PHASE A passed, running PHASE B", patch.patch_id);
-    LOG_COMPONENT_INFO("validator", "[{}] >> PHASE B: running full regression test suite", patch.patch_id);
+    LOG_COMPONENT_INFO("validator", "[{}] PHASE B: running full regression test suite", patch.patch_id);
 
     auto phase_b_result = timedValidation([&]() {
         return validateRegressionTests(patch, repo_metadata, phase_a_result, validation_start_time);
@@ -169,8 +169,42 @@ ValidationResult Validator::validateFailingTests(const PatchCandidate& patch,
 
         LOG_COMPONENT_INFO("validator", "[{}] PHASE A step 2: building project", patch.patch_id);
         auto build_start = std::chrono::high_resolution_clock::now();
-        // run build in current working directory (build dir), not repo root
-        auto build_res_pair = buildProject(".", repo_metadata.build_script, validation_start_time);
+        // choose build working directory: prefer ctest build dir if available, otherwise repo root
+        auto select_ctest_dir = [&](const std::string& base) -> std::string {
+            auto looks_like_ctest_dir = [](const std::filesystem::path& p) -> bool {
+                std::error_code lec;
+                if (!std::filesystem::exists(p, lec) || lec) return false;
+                return std::filesystem::exists(p / "CTestTestfile.cmake", lec)
+                    || std::filesystem::exists(p / "DartConfiguration.tcl", lec)
+                    || std::filesystem::exists(p / "CTestConfig.cmake", lec)
+                    || std::filesystem::exists(p / "Testing", lec);
+            };
+            std::vector<std::filesystem::path> candidates;
+            candidates.emplace_back(base);
+            candidates.emplace_back(std::filesystem::path(base) / "build");
+            for (auto it = std::filesystem::directory_iterator(base); it != std::filesystem::directory_iterator(); ++it) {
+                if (it->is_directory()) { candidates.emplace_back(it->path() / "build"); }
+            }
+            int max_depth = 3; std::error_code rec_ec;
+            for (auto it = std::filesystem::recursive_directory_iterator(base, rec_ec); it != std::filesystem::recursive_directory_iterator(); ++it) {
+                if (rec_ec) {
+                    break;
+                }
+                if (it.depth() > max_depth) {
+                    it.disable_recursion_pending();
+                    continue;
+                }
+                if (it->is_regular_file() && it->path().filename() == "CTestTestfile.cmake") {
+                    candidates.emplace_back(it->path().parent_path());
+                }
+            }
+            for (const auto& cand : candidates) { if (looks_like_ctest_dir(cand)) return cand.string(); }
+            return base;
+        };
+        std::string build_workdir = (repo_metadata.test_script.find("ctest") != std::string::npos)
+            ? select_ctest_dir(repo_root)
+            : repo_root;
+        auto build_res_pair = buildProject(build_workdir, repo_metadata.build_script, validation_start_time);
         auto build_end = std::chrono::high_resolution_clock::now();
 
         result.build_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(build_end - build_start).count();
@@ -191,8 +225,8 @@ ValidationResult Validator::validateFailingTests(const PatchCandidate& patch,
 
         LOG_COMPONENT_INFO("validator", "[{}] PHASE A step 3: running originally failing tests", patch.patch_id);
         auto test_start = std::chrono::high_resolution_clock::now();
-        // run tests from build directory
-        TestRunResult tr = runGTests(".", repo_metadata.test_script, patch.affected_tests,
+        // run tests
+        TestRunResult tr = runGTests(repo_root, repo_metadata.test_script, patch.affected_tests,
                                      validation_start_time, "phase-a", patch.patch_id);
         auto test_end = std::chrono::high_resolution_clock::now();
 
@@ -200,6 +234,12 @@ ValidationResult Validator::validateFailingTests(const PatchCandidate& patch,
         result.test_output = tr.stdout_text;
         result.tests_passed = tr.success;
         result.phase_a_artifact_path = tr.artifact_path;
+
+        // ensure artifact exists; otherwise treat as failure
+        if (!std::filesystem::exists(result.phase_a_artifact_path)) {
+            LOG_COMPONENT_WARN("validator", "test artifact not found: {}", result.phase_a_artifact_path);
+            result.tests_passed = false;
+        }
 
         auto test_counts = parseGTestResults(result.phase_a_artifact_path);
         result.tests_total_count = test_counts.first;
@@ -245,7 +285,34 @@ ValidationResult Validator::validateRegressionTests(const PatchCandidate& patch,
             return result;
         }
 
-        auto build_res_pair = buildProject(".", repo_metadata.build_script, validation_start_time);
+        // choose build working directory for phase B as well
+        std::string build_workdir_b = repo_root;
+        if (repo_metadata.test_script.find("ctest") != std::string::npos) {
+            auto looks_like_ctest_dir_b = [](const std::filesystem::path& p) -> bool {
+                std::error_code lec;
+                if (!std::filesystem::exists(p, lec) || lec) return false;
+                return std::filesystem::exists(p / "CTestTestfile.cmake", lec)
+                    || std::filesystem::exists(p / "DartConfiguration.tcl", lec)
+                    || std::filesystem::exists(p / "CTestConfig.cmake", lec)
+                    || std::filesystem::exists(p / "Testing", lec);
+            };
+            std::vector<std::filesystem::path> candidates_b;
+            candidates_b.emplace_back(repo_root);
+            candidates_b.emplace_back(std::filesystem::path(repo_root) / "build");
+            for (auto it = std::filesystem::directory_iterator(repo_root); it != std::filesystem::directory_iterator(); ++it) {
+                if (it->is_directory()) { candidates_b.emplace_back(it->path() / "build"); }
+            }
+            int max_depth_b = 3; std::error_code rec_ec_b;
+            for (auto it = std::filesystem::recursive_directory_iterator(repo_root, rec_ec_b); it != std::filesystem::recursive_directory_iterator(); ++it) {
+                if (rec_ec_b) { break; }
+                if (it.depth() > max_depth_b) { it.disable_recursion_pending(); continue; }
+                if (it->is_regular_file() && it->path().filename() == "CTestTestfile.cmake") {
+                    candidates_b.emplace_back(it->path().parent_path());
+                }
+            }
+            for (const auto& cand : candidates_b) { if (looks_like_ctest_dir_b(cand)) { build_workdir_b = cand.string(); break; } }
+        }
+        auto build_res_pair = buildProject(build_workdir_b, repo_metadata.build_script, validation_start_time);
         if (!build_res_pair.first) {
             result.error_message = "PHASE B compilation failed: " + build_res_pair.second;
             result.tests_passed = false;
@@ -261,7 +328,7 @@ ValidationResult Validator::validateRegressionTests(const PatchCandidate& patch,
         }
 
         auto test_start = std::chrono::high_resolution_clock::now();
-        TestRunResult tr = runGTests(".", repo_metadata.test_script, std::vector<std::string>{},
+        TestRunResult tr = runGTests(repo_root, repo_metadata.test_script, std::vector<std::string>{},
                                      validation_start_time, "phase-b", patch.patch_id);
         auto test_end = std::chrono::high_resolution_clock::now();
 
@@ -271,6 +338,10 @@ ValidationResult Validator::validateRegressionTests(const PatchCandidate& patch,
         result.test_output += "\n--- PHASE B Output ---\n" + tr.stdout_text;
         result.phase_b_artifact_path = tr.artifact_path;
 
+        if (!std::filesystem::exists(result.phase_b_artifact_path)) {
+            LOG_COMPONENT_WARN("validator", "test artifact not found: {}", result.phase_b_artifact_path);
+            tr.success = false;
+        }
         auto test_counts = parseGTestResults(result.phase_b_artifact_path);
         result.tests_total_count += test_counts.first;
         result.tests_passed = tr.success;
@@ -329,8 +400,8 @@ bool Validator::applyPatch(const PatchCandidate& patch, const std::string& repo_
 
 std::string Validator::resolveRepoPathForPatch(const PatchCandidate& patch) const {
     // try current and parent directories to find where patch.file_path exists
-    // common layouts: running from repo root ("."), from build dir ("./build"),
-    // or even deeper. we walk up to a few levels. maybe not good, but works for mvp :)
+    // common layouts: running from repo root ("."), from build dir ("./build"), or deeper
+    // maybe be not good, but works for mvp :)
     const std::vector<std::string> candidates = {
         ".",
         "..",
@@ -476,33 +547,93 @@ TestRunResult Validator::runGTests(const std::string& repo_path,
         return tr;
     }
 
-    // artifact under repo_path/artifacts/gtest/<phase>-<patch>.xml
-    std::filesystem::path artifact_dir = std::filesystem::path(repo_path) / "artifacts" / "gtest";
+    // artifact under repo_path/artifacts/gtest/<phase>-<patch>.xml (absolute path)
+    std::filesystem::path artifact_dir = std::filesystem::absolute(std::filesystem::path(repo_path) / "artifacts" / "gtest");
     std::error_code ec;
     std::filesystem::create_directories(artifact_dir, ec);
     if (ec) {
         LOG_COMPONENT_WARN("validator", "failed to create artifact dir '{}': {}", artifact_dir.string(), ec.message());
     }
     std::filesystem::path artifact_path_fs = artifact_dir / (phase_name + "-" + patch_id + ".xml");
-    tr.artifact_path = artifact_path_fs.string(); // set UNCONDITIONALLY
+    tr.artifact_path = artifact_path_fs.string(); // absolute path, set UNCONDITIONALLY
 
-    // build command (quote binary and artifact path)
-    std::string command = "\"" + test_binary + "\"";
+    // build command; support both direct gtest binary and ctest
+    std::string command = test_binary; // allow full command string
+    const bool is_ctest = (test_binary.find("ctest") != std::string::npos);
 
-    if (!test_filter.empty()) {
-        LOG_COMPONENT_DEBUG("validator", "running specific failing tests with --gtest_filter");
-        command += " --gtest_filter=";
-        for (size_t i = 0; i < test_filter.size(); ++i) {
-            command += test_filter[i];
-            if (i < test_filter.size() - 1) {
-                command += ":";
+    // if using ctest, try to locate a working directory that contains ctest metadata
+    std::string test_working_dir = repo_path;
+    if (is_ctest) {
+        auto looks_like_ctest_dir = [](const std::filesystem::path& p) -> bool {
+            std::error_code lec;
+            if (!std::filesystem::exists(p, lec) || lec) return false;
+            return std::filesystem::exists(p / "CTestTestfile.cmake", lec)
+                || std::filesystem::exists(p / "DartConfiguration.tcl", lec)
+                || std::filesystem::exists(p / "CTestConfig.cmake", lec)
+                || std::filesystem::exists(p / "Testing", lec);
+        };
+
+        // candidates: repo_path, repo_path/build, any immediate subdir named build, and a shallow recursive scan
+        std::vector<std::filesystem::path> candidates;
+        candidates.emplace_back(repo_path);
+        candidates.emplace_back(std::filesystem::path(repo_path) / "build");
+
+        // add subdir/build for first level subdirs
+        for (auto it = std::filesystem::directory_iterator(repo_path); it != std::filesystem::directory_iterator(); ++it) {
+            if (it->is_directory()) {
+                candidates.emplace_back(it->path() / "build");
             }
         }
-    } else {
-        LOG_COMPONENT_DEBUG("validator", "running full test suite");
+
+        // shallow recursive scan for CTestTestfile.cmake up to depth 3
+        int max_depth = 3;
+        std::error_code rec_ec;
+        for (auto it = std::filesystem::recursive_directory_iterator(repo_path, rec_ec); it != std::filesystem::recursive_directory_iterator(); ++it) {
+            if (rec_ec) break;
+            if (it.depth() > max_depth) { it.disable_recursion_pending(); continue; }
+            if (it->is_regular_file() && it->path().filename() == "CTestTestfile.cmake") {
+                candidates.emplace_back(it->path().parent_path());
+                // don't break; collect several options
+            }
+        }
+
+        for (const auto& cand : candidates) {
+            if (looks_like_ctest_dir(cand)) { test_working_dir = cand.string(); break; }
+        }
+        LOG_COMPONENT_DEBUG("validator", "ctest working directory: {}", test_working_dir);
     }
 
-    command += " --gtest_output=xml:\"" + tr.artifact_path + "\"";
+    if (is_ctest) {
+        // use CTest with junit output to our artifact path
+        // optional regex filter via -R (join test names with '|')
+        if (!test_filter.empty()) {
+            std::string regex;
+            for (size_t i = 0; i < test_filter.size(); ++i) {
+                if (i > 0) regex += "|";
+                regex += test_filter[i];
+            }
+            command += " -R \"" + regex + "\"";
+        } else {
+            LOG_COMPONENT_DEBUG("validator", "running full test suite");
+        }
+        // ensure failures are visible and emit junit xml
+        command += " --output-on-failure --output-junit \"" + tr.artifact_path + "\"";
+    } else {
+        // gtest binary: use --gtest_filter and --gtest_output
+        if (!test_filter.empty()) {
+            LOG_COMPONENT_DEBUG("validator", "running specific failing tests with --gtest_filter");
+            command += " --gtest_filter=";
+            for (size_t i = 0; i < test_filter.size(); ++i) {
+                command += test_filter[i];
+                if (i < test_filter.size() - 1) {
+                    command += ":";
+                }
+            }
+        } else {
+            LOG_COMPONENT_DEBUG("validator", "running full test suite");
+        }
+        command += " --gtest_output=xml:\"" + tr.artifact_path + "\"";
+    }
 
     long long remaining_ms = getRemainingTimeBudgetMs(validation_start_time);
     if (remaining_ms <= 0) {
@@ -512,7 +643,19 @@ TestRunResult Validator::runGTests(const std::string& repo_path,
         return tr;
     }
 
-    ExecResult res = executeCommand(command, repo_path, remaining_ms);
+    ExecResult res = executeCommand(command, test_working_dir, remaining_ms);
+    
+    // if command succeeded but artifact wasn't created, mark failure explicitly
+    if (res.ok) {
+        std::error_code fec;
+        if (!std::filesystem::exists(tr.artifact_path, fec)) {
+            LOG_COMPONENT_WARN("validator", "expected test artifact not created: {}", tr.artifact_path);
+            tr.success = false;
+            tr.stdout_text = res.output + "\n[validator] expected test artifact not created: " + tr.artifact_path;
+            tr.exit_code = (tr.exit_code == 0 ? 1 : tr.exit_code);
+            return tr;
+        }
+    }
     tr.success = res.ok;
     tr.stdout_text = std::move(res.output);
     tr.exit_code = res.exit_code;
@@ -746,21 +889,40 @@ std::vector<std::string> Validator::applyPatchToLines(
     const std::vector<std::string>& modified_lines,
     const PatchCandidate& patch) {
 
-    std::vector<std::string> result;
-    result.reserve(original_lines.size() + modified_lines.size());
+    // perform column-sensitive in-line replacement for single-line edits (mvp)
+    if (patch.start_line == patch.end_line && !patch.original_code.empty() && !modified_lines.empty()) {
+        const int line_idx = patch.start_line - 1;
+        const bool valid_index = line_idx >= 0 && line_idx < static_cast<int>(original_lines.size());
 
-    std::copy(original_lines.begin(),
-              original_lines.begin() + patch.start_line - 1,
-              std::back_inserter(result));
+        auto try_inline_replace = [&](int idx) -> std::optional<std::vector<std::string>> {
+            const std::string &orig_line = original_lines[idx];
+            if (const size_t pos = orig_line.find(patch.original_code); pos != std::string::npos) {
+                std::vector<std::string> updated_lines = original_lines;
+                std::string replaced_line = orig_line;
+                replaced_line.replace(pos, patch.original_code.size(), modified_lines.front());
+                updated_lines[idx] = std::move(replaced_line);
+                LOG_COMPONENT_INFO(
+                    "validator",
+                    "[{}] in-line replacement at {}:{}: '{}' -> '{}'",
+                    patch.patch_id,
+                    patch.file_path,
+                    patch.start_line,
+                    patch.original_code,
+                    modified_lines.front()
+                );
+                return updated_lines;
+            }
+            return std::nullopt;
+        };
 
-    std::copy(modified_lines.begin(), modified_lines.end(),
-              std::back_inserter(result));
-
-    std::copy(original_lines.begin() + patch.end_line,
-              original_lines.end(),
-              std::back_inserter(result));
-
-    return result;
+        if (valid_index) {
+            if (auto replaced = try_inline_replace(line_idx)) {
+                return std::move(*replaced);
+            }
+        }
+    }
+    // if inline replacement conditions aren't met, return original lines unchanged
+    return original_lines;
 }
 
 // parse gtest xml output to extract (total, passed), minimal MVP version

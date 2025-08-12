@@ -58,7 +58,18 @@ SystemState Orchestrator::runPipeline(
 
     // step 2: AST parsing
     LOG_COMPONENT_INFO("parser", "parsing source files...");
-    state.ast_nodes = parser_->parseAST(state.suspicious_locations, repo_metadata.source_files);
+    // derive source file set from repo metadata and SBFL locations
+    std::vector<std::string> derived_sources = repo_metadata.source_files;
+    derived_sources.reserve(derived_sources.size() + state.suspicious_locations.size());
+    for (const auto &loc : state.suspicious_locations) {
+        if (loc.file_path.empty()) continue;
+        // dedup: append if not already present
+        bool exists = std::find(derived_sources.begin(), derived_sources.end(), loc.file_path) != derived_sources.end();
+        if (!exists) {
+            derived_sources.push_back(loc.file_path);
+        }
+    }
+    state.ast_nodes = parser_->parseAST(state.suspicious_locations, derived_sources);
     LOG_COMPONENT_INFO("parser", "AST parsing completed - extracted {} AST nodes", state.ast_nodes.size());
 
     if (state.ast_nodes.empty()) {
@@ -96,14 +107,7 @@ SystemState Orchestrator::runPipeline(
         return state;
     }
 
-    // step 6: find best patch
-    auto best_patch_it = std::max_element(state.validation_results.begin(),
-                                         state.validation_results.end(),
-        [](const ValidationResult& a, const ValidationResult& b) {
-            return a.tests_passed_count < b.tests_passed_count;
-        });
-
-    // PR creation is delegated to the GitHub App layer. The engine no longer creates PRs.
+    // NOTE: PR creation is delegated to the GitHub App layer, the engine no longer creates PRs
 
     LOG_COMPONENT_INFO("orchestrator", "APR project pipeline completed successfully!");
     return state;
