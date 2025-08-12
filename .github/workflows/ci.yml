@@ -80,7 +80,20 @@ jobs:
         # skip if this is a PR and the branch already passed CI
         SKIP_IF_PASSED: ${{ github.event_name == 'pull_request' }}
 
-    - name: "STEP 5: APR System Functional Checks"
+    
+    - name: "STEP 5: Build All Buggy Programs"
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}:/workspace \
+          -w /workspace/buggy-programs \
+          apr-system:latest bash -c "
+            set -e
+            echo 'Building all buggy programs...'
+            bash build-all.sh
+            echo 'Buggy programs build completed'
+          "
+
+    - name: "STEP 6: APR System Functional Checks"
       run: |
         docker run --rm \
           -v ${{ github.workspace }}:/workspace \
@@ -99,7 +112,7 @@ jobs:
             echo 'End-to-end test completed'
           "
 
-    - name: "STEP 6: Verify & Upload Artifacts"
+    - name: "STEP 7: Verify & Upload Artifacts"
       run: |
         docker run --rm \
           -v ${{ github.workspace }}:/workspace \
@@ -132,7 +145,7 @@ jobs:
           build/logs/
           build/ci-results/
 
-    - name: "STEP 7: Debug on Failure"
+    - name: "STEP 8: Debug on Failure"
       if: failure()
       run: |
         echo "=== Failure Debug Information ==="
