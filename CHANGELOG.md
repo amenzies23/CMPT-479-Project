@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### REMOVED - 2025-08-12
+- removed C++ PRBot module and interface, PR creation is now handled exclusively by the github app. updated orchestrator contracts, build files, and tests accordingly.
+
 ### ADDED - 2025-07-08
 - initial project skeleton with core APR pipeline modules
 - module interfaces and stub implementations (SBFL, parser, mutator, prioritizer, validator, PRBot)

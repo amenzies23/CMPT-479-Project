@@ -11,7 +11,6 @@
 #include "mutator/mutator.h"
 #include "prioritizer/prioritizer.h"
 #include "validator/validator.h"
-#include "prbot/prbot.h"
 #include "cli/cli.h"
 
 using namespace apr_system;
@@ -173,7 +172,6 @@ int main(int argc, char* argv[]) {
         auto mutator = std::make_unique<Mutator>();
         auto prioritizer = std::make_unique<Prioritizer>();
         auto validator = std::make_unique<Validator>();
-        auto prbot = std::make_unique<PRBot>();
 
         // create orchestrator and set components
         auto orchestrator = std::make_unique<Orchestrator>();
@@ -182,8 +180,7 @@ int main(int argc, char* argv[]) {
             std::move(parser),
             std::move(mutator),
             std::move(prioritizer),
-            std::move(validator),
-            std::move(prbot)
+            std::move(validator)
         );
 
         std::vector<TestResult> test_results;
@@ -247,9 +244,7 @@ int main(int argc, char* argv[]) {
         LOG_INFO("generated {} patch candidates", system_state.patch_candidates.size());
         LOG_INFO("validated {} patches", system_state.validation_results.size());
 
-        if (system_state.has_pr_result && system_state.pr_result.success) {
-            LOG_INFO("created PR: {}", system_state.pr_result.pr_url);
-        }
+        // PR creation handled by GitHub App layer
 
         // set exit code based on whether patches were found
         if (system_state.validation_results.empty()) {

@@ -105,18 +105,7 @@ SystemState Orchestrator::runPipeline(
             return a.tests_passed_count < b.tests_passed_count;
         });
 
-    if (best_patch_it != state.validation_results.end() && best_patch_it->tests_passed) {
-        // step 7: create pull request
-        LOG_COMPONENT_INFO("prbot", "creating pull request...");
-        state.pr_result = prbot_->createPullRequest(*best_patch_it, repo_metadata, state.validation_results);
-        state.has_pr_result = true;
-
-        if (state.pr_result.success) {
-            LOG_COMPONENT_INFO("prbot", "pull request created successfully: {}", state.pr_result.pr_url);
-        } else {
-            LOG_COMPONENT_ERROR("prbot", "pull request creation failed: {}", state.pr_result.pr_url);
-        }
-    }
+    // PR creation is delegated to the GitHub App layer. The engine no longer creates PRs.
 
     LOG_COMPONENT_INFO("orchestrator", "APR project pipeline completed successfully!");
     return state;
@@ -127,15 +116,13 @@ void Orchestrator::setComponents(
     std::unique_ptr<IParser> parser,
     std::unique_ptr<IMutator> mutator,
     std::unique_ptr<IPrioritizer> prioritizer,
-    std::unique_ptr<IValidator> validator,
-    std::unique_ptr<IPRBot> prbot
+    std::unique_ptr<IValidator> validator
 ) {
     sbfl_ = std::move(sbfl);
     parser_ = std::move(parser);
     mutator_ = std::move(mutator);
     prioritizer_ = std::move(prioritizer);
     validator_ = std::move(validator);
-    prbot_ = std::move(prbot);
 }
 
 void Orchestrator::validateComponents() const {
@@ -158,10 +145,6 @@ void Orchestrator::validateComponents() const {
     if (!validator_) {
         LOG_APR_ERROR("orchestrator", "validator component not set");
         throw std::runtime_error("validator component not set");
-    }
-    if (!prbot_) {
-        LOG_APR_ERROR("orchestrator", "PR bot component not set");
-        throw std::runtime_error("prbot component not set");
     }
 
     LOG_DEBUG("all orchestrator components validated successfully");

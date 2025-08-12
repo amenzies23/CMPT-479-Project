@@ -169,7 +169,7 @@ CMPT-479-Project/
 │   ├── mutator/            # patch generation
 │   ├── prioritizer/        # patch ranking
 │   ├── validator/          # patch validation
-│   ├── prbot/              # PR creation
+│   ├── prbot/              # [removed] PR creation handled by GitHub App
 │   └── orchestrator/       # pipeline coordination
 ├── tests/                  
 │   ├── unit/               # unit tests for each module

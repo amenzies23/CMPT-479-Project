@@ -10,7 +10,6 @@ add_executable(apr_tests
     unit/test_mutator.cpp
     unit/test_prioritizer.cpp
     unit/test_validator.cpp
-    unit/test_prbot.cpp
     unit/test_orchestrator.cpp
     # test_json_schema_validator.cpp
     # integration/test_end_to_end.cpp
