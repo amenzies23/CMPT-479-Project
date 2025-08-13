@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <optional>
+#include <unordered_map>
 #include <functional>
 
 namespace apr_system {
@@ -133,6 +134,10 @@ private:
 
   // repo root resolution
   std::string resolveRepoPathForPatch(const PatchCandidate& patch) const;
+
+  // snapshot of original file contents before applying a patch
+  // key: absolute file path; value: full file content lines
+  std::unordered_map<std::string, std::vector<std::string>> original_file_cache_;
 };
 
 } // namespace apr_system
