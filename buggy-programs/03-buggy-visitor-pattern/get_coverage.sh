@@ -12,6 +12,6 @@ mkdir -p ./coverage
   mkdir -p "./coverage/$test"
   for src in rectangle.cpp circle.cpp triangle.cpp area_calculator.cpp; do
     gcov ./CMakeFiles/area_lib.dir/src/$src.o
+    mv ${src}.gcov "./coverage/$test/"
   done
-  mv *.gcov "./coverage/$test/"
 done

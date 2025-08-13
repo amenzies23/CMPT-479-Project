@@ -11,5 +11,5 @@ mkdir -p ./coverage
   ./test_calculator --gtest_filter="$test"
   mkdir -p "./coverage/$test"
   gcov ./CMakeFiles/calculator.dir/src/calculator.cpp.o 
-  mv *.gcov "./coverage/$test/"
+  mv calculator.cpp.gcov "./coverage/$test/"
 done

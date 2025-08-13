@@ -12,6 +12,6 @@ mkdir -p ./coverage
   mkdir -p "./coverage/$test"
   for src in linked_list.cpp; do
     gcov ./CMakeFiles/linked_list_lib.dir/src/$src.o
+     mv ${src}.gcov "./coverage/$test/"
   done
-  mv *.gcov "./coverage/$test/"
 done

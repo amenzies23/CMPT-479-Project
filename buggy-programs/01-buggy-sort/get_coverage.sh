@@ -12,6 +12,6 @@ mkdir -p ./coverage
   mkdir -p "./coverage/$test"
   for src in sort.cpp; do
     gcov ./CMakeFiles/sort_lib.dir/src/$src.o
+     mv ${src}.gcov "./coverage/$test/"
   done
-  mv *.gcov "./coverage/$test/"
 done
