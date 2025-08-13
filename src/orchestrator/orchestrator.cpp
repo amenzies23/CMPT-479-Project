@@ -99,7 +99,7 @@ SystemState Orchestrator::runPipeline(
 
     // step 5: patch validation
     LOG_COMPONENT_INFO("validator", "validating patches...");
-    state.validation_results = validator_->validatePatches(state.prioritized_patches, repo_metadata, 3);
+    state.validation_results = validator_->validatePatches(state.prioritized_patches, repo_metadata, 10);  // TODO: update this later to smaller number of patches (not sure if needed)
     LOG_COMPONENT_INFO("validator", "patch validation completed - validated {} patches", state.validation_results.size());
 
     if (state.validation_results.empty()) {

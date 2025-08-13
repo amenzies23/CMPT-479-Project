@@ -74,6 +74,23 @@ std::vector<ValidationResult> Validator::validatePatches(
 
         LOG_COMPONENT_INFO("validator", "[{}] validating patch {}/{}: {} ({}:{})",
             patch.patch_id, i + 1, patches_to_validate, patch.patch_id, patch.file_path, patch.start_line);
+        LOG_COMPONENT_DEBUG("validator",
+            "[{}] patch details: file='{}', lines {}-{}, mutation='{}' (target='{}', source='{}'), scores: susp={:.3f}, sim={:.3f}",
+            patch.patch_id,
+            patch.file_path,
+            patch.start_line,
+            patch.end_line,
+            patch.mutation_type.mutation_category,
+            patch.mutation_type.target_node,
+            patch.mutation_type.source_node,
+            patch.suspiciousness_score,
+            patch.similarity_score);
+        if (!patch.diff.empty()) {
+            LOG_COMPONENT_DEBUG("validator", "[{}] unified diff:\n{}", patch.patch_id, patch.diff);
+        } else {
+            LOG_COMPONENT_DEBUG("validator", "[{}] original -> modified:\n'{}'\n-->\n'{}'",
+                patch.patch_id, patch.original_code, patch.modified_code);
+        }
 
         auto result = validatePatchTwoPhase(patch, repo_metadata, validation_start_time);
         results.emplace_back(std::move(result));
@@ -87,6 +104,9 @@ std::vector<ValidationResult> Validator::validatePatches(
     recordTotalValidationTime(validation_start_time);
     LOG_COMPONENT_INFO("validator", "validation completed: {}ms, {} results",
         phase_timing_.total_time_ms, results.size());
+
+    // Clear any cached originals to avoid stale state between runs
+    original_file_cache_.clear();
 
     return results;
 }
@@ -358,13 +378,32 @@ ValidationResult Validator::validateRegressionTests(const PatchCandidate& patch,
         result.tests_passed = false;
     }
 
-    restoreOriginalCode(patch, repo_root);
+    // persist patch if regression tests passed, otherwise restore original code
+    if (!result.tests_passed) {
+        restoreOriginalCode(patch, repo_root);
+    } else {
+        LOG_COMPONENT_INFO("validator", "[{}] keeping patch applied (regression tests passed)", patch.patch_id);
+    }
     return result;
 }
 
 bool Validator::applyPatch(const PatchCandidate& patch, const std::string& repo_path) {
     try {
-        const auto full_file_path = repo_path + "/" + patch.file_path;
+        std::filesystem::path file_path_fs(patch.file_path);
+        const std::string full_file_path = file_path_fs.is_absolute()
+            ? file_path_fs.lexically_normal().string()
+            : (std::filesystem::path(repo_path) / file_path_fs).lexically_normal().string();
+
+        LOG_COMPONENT_DEBUG(
+            "validator",
+            "[{}] applying patch to '{}' (lines {}-{}). mutation='{}' target='{}' source='{}'",
+            patch.patch_id,
+            full_file_path,
+            patch.start_line,
+            patch.end_line,
+            patch.mutation_type.mutation_category,
+            patch.mutation_type.target_node,
+            patch.mutation_type.source_node);
 
         if (!fileExists(full_file_path)) {
             LOG_COMPONENT_ERROR("validator", "file does not exist: {}", full_file_path);
@@ -376,6 +415,13 @@ bool Validator::applyPatch(const PatchCandidate& patch, const std::string& repo_
             return false;
         }
 
+        // snapshot original if not already cached
+        if (!original_file_cache_.count(full_file_path)) {
+            original_file_cache_[full_file_path] = *lines;
+            LOG_COMPONENT_DEBUG("validator", "[{}] cached original contents for '{}' ({} lines)",
+                patch.patch_id, full_file_path, lines->size());
+        }
+
         if (!isValidLineRange(patch, lines->size())) {
             LOG_COMPONENT_ERROR("validator", "invalid line range: {}-{} for file with {} lines",
                 patch.start_line, patch.end_line, lines->size());
@@ -384,6 +430,12 @@ bool Validator::applyPatch(const PatchCandidate& patch, const std::string& repo_
 
         auto modified_lines = splitIntoLines(patch.modified_code);
         auto new_content = applyPatchToLines(*lines, modified_lines, patch);
+
+        // detect no-op (content unchanged)
+        if (new_content == *lines) {
+            LOG_COMPONENT_WARN("validator", "[{}] patch produced no changes for '{}' (no-op)", patch.patch_id, full_file_path);
+            return false;
+        }
 
         if (!writeFileLines(full_file_path, new_content)) {
             return false;
@@ -399,6 +451,20 @@ bool Validator::applyPatch(const PatchCandidate& patch, const std::string& repo_
 }
 
 std::string Validator::resolveRepoPathForPatch(const PatchCandidate& patch) const {
+    {
+        std::filesystem::path p(patch.file_path);
+        if (p.is_absolute()) {
+            const std::string s = p.lexically_normal().string();
+            const std::string marker = "/src/";
+            const size_t pos = s.find(marker);
+            if (pos != std::string::npos && pos > 0) {
+                return std::filesystem::path(s.substr(0, pos)).string();
+            }
+            // fallback: parent directory of the file
+            return p.parent_path().string();
+        }
+    }
+
     // try current and parent directories to find where patch.file_path exists
     // common layouts: running from repo root ("."), from build dir ("./build"), or deeper
     // maybe be not good, but works for mvp :)
@@ -424,7 +490,12 @@ std::string Validator::resolveRepoPathForPatch(const PatchCandidate& patch) cons
 
 bool Validator::restoreOriginalCode(const PatchCandidate& patch, const std::string& repo_path) {
     try {
-        std::string full_file_path = repo_path + "/" + patch.file_path;
+        std::filesystem::path file_path_fs(patch.file_path);
+        std::string full_file_path = file_path_fs.is_absolute()
+            ? file_path_fs.lexically_normal().string()
+            : (std::filesystem::path(repo_path) / file_path_fs).lexically_normal().string();
+
+        LOG_COMPONENT_DEBUG("validator", "[{}] restoring original code for '{}'", patch.patch_id, full_file_path);
 
         if (fileExists(repo_path + "/.git")) {
             std::string git_cmd = "git restore --source=HEAD -- " + patch.file_path;
@@ -437,6 +508,29 @@ bool Validator::restoreOriginalCode(const PatchCandidate& patch, const std::stri
             }
         }
 
+        auto it = original_file_cache_.find(full_file_path);
+        if (it != original_file_cache_.end()) {
+            const auto& orig_lines = it->second;
+            std::ofstream out_file(full_file_path);
+            if (!out_file.is_open()) {
+                LOG_COMPONENT_ERROR("validator", "failed to open file for restoration writing");
+                return false;
+            }
+            for (size_t i = 0; i < orig_lines.size(); ++i) {
+                out_file << orig_lines[i];
+                if (i < orig_lines.size() - 1) {
+                    out_file << '\n';
+                }
+            }
+            if (!orig_lines.empty()) {
+                out_file << '\n';
+            }
+            out_file.close();
+            LOG_COMPONENT_INFO("validator", "original code restored successfully");
+            return true;
+        }
+
+        // fallback
         struct stat buffer;
         if (stat(full_file_path.c_str(), &buffer) != 0) {
             LOG_COMPONENT_ERROR("validator", "file does not exist for restoration");
@@ -448,59 +542,39 @@ bool Validator::restoreOriginalCode(const PatchCandidate& patch, const std::stri
             LOG_COMPONENT_ERROR("validator", "failed to open file for restoration");
             return false;
         }
-
         std::vector<std::string> lines;
         std::string line;
-        while (std::getline(file, line)) {
-            lines.push_back(line);
-        }
+        while (std::getline(file, line)) { lines.push_back(line); }
         file.close();
 
         std::vector<std::string> original_lines;
         std::istringstream original_stream(patch.original_code);
         std::string original_line;
-        while (std::getline(original_stream, original_line)) {
-            original_lines.push_back(original_line);
-        }
+        while (std::getline(original_stream, original_line)) { original_lines.push_back(original_line); }
 
         std::istringstream modified_stream(patch.modified_code);
-        int modified_line_count = 0;
-        std::string temp_line;
-        while (std::getline(modified_stream, temp_line)) {
-            modified_line_count++;
-        }
+        int modified_line_count = 0; std::string temp_line;
+        while (std::getline(modified_stream, temp_line)) { modified_line_count++; }
 
         std::vector<std::string> restored_content;
-
-        for (int i = 0; i < patch.start_line - 1; ++i) {
+        for (int i = 0; i < patch.start_line - 1 && i < static_cast<int>(lines.size()); ++i) {
             restored_content.push_back(lines[i]);
         }
-
-        for (size_t i = 0; i < original_lines.size(); ++i) {
-            restored_content.push_back(original_lines[i]);
-        }
-
+        for (size_t i = 0; i < original_lines.size(); ++i) { restored_content.push_back(original_lines[i]); }
         int skip_lines = patch.start_line - 1 + modified_line_count;
-        for (int i = skip_lines; i < static_cast<int>(lines.size()); ++i) {
-            restored_content.push_back(lines[i]);
-        }
+        for (int i = skip_lines; i < static_cast<int>(lines.size()); ++i) { restored_content.push_back(lines[i]); }
 
-        std::ofstream out_file(full_file_path);
-        if (!out_file.is_open()) {
+        std::ofstream out_file2(full_file_path);
+        if (!out_file2.is_open()) {
             LOG_COMPONENT_ERROR("validator", "failed to open file for restoration writing");
             return false;
         }
-
         for (size_t i = 0; i < restored_content.size(); ++i) {
-            out_file << restored_content[i];
-            if (i < restored_content.size() - 1) {
-                out_file << "\n";
-            }
+            out_file2 << restored_content[i];
+            if (i < restored_content.size() - 1) { out_file2 << '\n'; }
         }
-        if (!restored_content.empty()) {
-            out_file << "\n";
-        }
-        out_file.close();
+        if (!restored_content.empty()) { out_file2 << '\n'; }
+        out_file2.close();
 
         LOG_COMPONENT_INFO("validator", "original code restored successfully");
         return true;

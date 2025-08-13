@@ -10,6 +10,8 @@ add_library(apr_system_lib
 
     sbfl/sbfl.h
     sbfl/sbfl.cpp
+    sbfl/utils.h
+    sbfl/utils.cpp
 
     parser/parser.h
     parser/parser.cpp

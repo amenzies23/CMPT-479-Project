@@ -88,7 +88,6 @@ void saveSystemStateToJSON(const SystemState& state, const std::string& filepath
         file << "      \"file_path\": \"" << loc.file_path << "\",\n";
         file << "      \"line_number\": " << loc.line_number << ",\n";
         file << "      \"suspiciousness_score\": " << loc.suspiciousness_score << ",\n";
-        file << "      \"function\": \"" << loc.function << "\"\n";
         file << "    }";
         if (i < state.suspicious_locations.size() - 1) file << ",";
         file << "\n";
@@ -131,12 +130,14 @@ int main(int argc, char* argv[]) {
         LOG_INFO("starting APR project system pipeline...");
 
         // parse command-line arguments
+
         auto args = CLIParser::parseArgs(argc, argv);
 
         if (args.help) {
             CLIParser::printHelp();
             return 0;
         }
+
 
         if (!CLIParser::validateArgs(args)) {
             LOG_ERROR("invalid arguments. use --help for usage information.");
@@ -151,6 +152,7 @@ int main(int argc, char* argv[]) {
             LOG_INFO("branch: {}", args.branch);
             LOG_INFO("sbfl json: {}", args.sbfl_json);
             LOG_INFO("mutation frequency json: {}", args.mutation_freq_json);
+            LOG_INFO("buggy-program: {}", args.buggy_program_dir);
         }
 
         // create component instances
@@ -160,6 +162,32 @@ int main(int argc, char* argv[]) {
         auto mutator = std::make_unique<Mutator>(args.mutation_freq_json);
         auto prioritizer = std::make_unique<Prioritizer>();
         auto validator = std::make_unique<Validator>();
+      
+        std::vector<TestResult> test_results;
+        CoverageData coverage_data;
+
+        // run sbfl analysis and load mutation frequencies
+        try {
+            // default to 01-buggy-calculator if no arg is provided
+            if (args.buggy_program_dir.empty()) {
+                LOG_WARN("No buggy program directory provided. Defaulting to 01-buggy-calculator.");
+                args.buggy_program_dir = "/workspace/buggy-programs/01-buggy-calculator";
+            }
+
+            LOG_INFO("running SBFL analysis");
+            sbfl->runSBFLAnalysis(args.buggy_program_dir, args.sbfl_json);
+
+            if (std::filesystem::exists(args.mutation_freq_json)) {
+                LOG_INFO("loading mutation frequencies from: {}", args.mutation_freq_json);
+            } else {
+                LOG_ERROR("mutation frequency file not found: {}", args.mutation_freq_json);
+                throw std::runtime_error("missing mutation frequency json");
+            }
+        } catch (const std::exception& e) {
+            LOG_WARN("error loading files, falling back to mock data: {}", e.what());
+            test_results = createMockTestResults();
+            coverage_data = createMockCoverageData();
+        }
 
         // create orchestrator and set components
         auto orchestrator = std::make_unique<Orchestrator>();
@@ -170,37 +198,6 @@ int main(int argc, char* argv[]) {
             std::move(prioritizer),
             std::move(validator)
         );
-
-        std::vector<TestResult> test_results;
-        CoverageData coverage_data;
-
-        try {
-            if (std::filesystem::exists(args.sbfl_json)) {
-                LOG_INFO("loading sbfl results from: {}", args.sbfl_json);
-            } else {
-                LOG_WARN("sbfl results file not found, using mock data");
-                test_results = createMockTestResults();
-            }
-
-            if (std::filesystem::exists(args.mutation_freq_json)) {
-                LOG_INFO("loading mutation frequencies from: {}", args.mutation_freq_json);
-            } else {
-                LOG_ERROR("mutation frequency file not found: {}", args.mutation_freq_json);
-                throw std::runtime_error("missing mutation frequency json");
-            }
-
-        //     if (std::filesystem::exists(args.coverage_file)) {
-        //         LOG_INFO("loading coverage data from: {}", args.coverage_file);
-        //         coverage_data = CLIParser::loadCoverageData(args.coverage_file);
-        //     } else {
-        //         LOG_WARN("coverage file not found, using mock data");
-        //         coverage_data = createMockCoverageData();
-        //     }
-        } catch (const std::exception& e) {
-            LOG_WARN("error loading files, falling back to mock data: {}", e.what());
-            test_results = createMockTestResults();
-            coverage_data = createMockCoverageData();
-        }
 
         // create repository metadata
         auto repo_metadata = CLIParser::createRepositoryMetadata(args);

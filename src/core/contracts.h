@@ -20,6 +20,15 @@ public:
    */
   virtual std::vector<SuspiciousLocation>
   localizeFaults(const std::string& sbfl_json) = 0;
+    /**
+   * @brief runs SBFL analysis
+   * @param buggy_program_dir Path to buggy program
+   * @param sbfl_json sbfl_json to be updated
+   * 
+   * @return void, Updates sbfl_json
+   */
+  virtual void 
+  runSBFLAnalysis(const std::string& buggy_program_dir, std::string& sbfl_json) = 0;
 };
 
 /**

@@ -6,11 +6,9 @@
 namespace apr_system {
 
 /**
- * @brief stub implementation of SBFL (spectrum-based fault localization)
+ * @brief implementation of SBFL (spectrum-based fault localization)
  *
- * this is a stub for future developers to implement fault localization
- * algorithms. currently returns mock data for testing the data flow between
- * modules.
+ * Generates suspicious location scores
  */
 class SBFL : public ISBFL {
 public:
@@ -18,22 +16,30 @@ public:
   ~SBFL() = default;
 
   /**
-   * @brief stub method for fault localization
-   *
-   * TODO: future developers should implement this to:
-   * 1. analyze failed tests from test_results
-   * 2. use coverage_data to identify lines executed by failing tests
-   * 3. apply SBFL algorithm (ochiai, tarantula, etc.) to compute suspiciousness
-   * scores
-   * 4. return sorted list of suspicious locations
-   *
+   * @brief generate suspicious location scores
+   * 
+   * Parse the SBFL json file to return a vector of suspicious locations
+   * 
    * @param sbfl_json Path to json file containing SBFL scores
    * 
    * @return vector of suspicious locations ranked by suspiciousness score
    * (0.0-1.0)
    */
-  std::vector<SuspiciousLocation>
-  localizeFaults(const std::string& sbfl_json) override;
+  std::vector<SuspiciousLocation> localizeFaults(const std::string& sbfl_json) override;
+
+
+  /**
+   * @brief runs SBFL analysis
+   * 
+   * Given a local buggy program directory run the SBFL analysis python script to generate
+   * a json
+   * 
+   * @param buggy_program_dir Path to buggy program
+   * @param sbfl_json sbfl_json to be updated
+   * 
+   * @return void, Updates sbfl_json
+   */
+  void runSBFLAnalysis(const std::string& buggy_program_dir, std::string& sbfl_json);
 };
 
 } // namespace apr_system

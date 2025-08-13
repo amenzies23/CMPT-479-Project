@@ -15,11 +15,9 @@ namespace apr_system {
 
 // Helper, read entire file content into a string
 std::string read_file(const std::string &filename) {
-    std::string full_path = std::string(PROJECT_SOURCE_DIR) + "/" + filename;
-    std::ifstream file(full_path);
-    
+    std::ifstream file(filename);
     if (!file) {
-        throw std::runtime_error("Cannot open file: " + full_path + " (" + std::strerror(errno) + ")");
+        throw std::runtime_error("Cannot open file: " + filename + " (" + std::strerror(errno) + ")");
     }
     
     return std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());

@@ -15,6 +15,7 @@ struct CLIArgs {
   std::string commit_hash;
   std::string sbfl_json;
   std::string mutation_freq_json;
+  std::string buggy_program_dir;
   std::string output_dir;
   std::string config_file;
   std::string build_script;
@@ -77,10 +78,10 @@ public:
 
 private:
   /**
-   * @brief find source files in common directories
+   * @brief find source files in buggy program directories
    * @return vector of source file paths
    */
-  static std::vector<std::string> findSourceFiles();
+  static std::vector<std::string> findSourceFiles(const std::string &buggy_program_dir);
 
   /**
    * @brief create mock coverage data for demo purposes
