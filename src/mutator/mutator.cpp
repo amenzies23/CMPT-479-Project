@@ -39,7 +39,6 @@ std::string Mutator::makeDiff(int startLine, const std::string &orig, const std:
 std::vector<PatchCandidate> Mutator::generatePatches(
     const std::vector<ASTNode> &ast_nodes,
     const std::vector<std::string> &source_files){
-    LOG_COMPONENT_INFO("mutator", "this is a stub implementation");
     LOG_COMPONENT_INFO("mutator", "input: {} AST nodes, {} source files",
                         ast_nodes.size(), source_files.size());
 
@@ -188,7 +187,7 @@ std::vector<PatchCandidate> Mutator::generatePatches(
     }
     dumpPatchCandidates(patch_candidates); 
 
-    LOG_COMPONENT_INFO("mutator", "stub returning {} mock patch candidates", patch_candidates.size());
+    LOG_COMPONENT_INFO("mutator", "generated {} patch candidates", patch_candidates.size());
     return patch_candidates;
 }
 

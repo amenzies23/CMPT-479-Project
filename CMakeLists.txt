@@ -70,9 +70,20 @@ target_include_directories(tree-sitter-cpp-grammar PUBLIC $<BUILD_INTERFACE:${TR
 target_link_libraries(tree-sitter-cpp-grammar PUBLIC unofficial::tree-sitter::tree-sitter)
 # --- end tree-sitter-cpp grammar integration ---
 
+# build options
+option(APR_BUILD_TESTS "build unit/integration tests under tests/" ON)
+
 # add subdirectories
 add_subdirectory(src)
-add_subdirectory(tests)
+
+# tests are optional; skip if directory is not present in the build context (e.g. docker)
+if (APR_BUILD_TESTS)
+    if (EXISTS ${CMAKE_SOURCE_DIR}/tests/CMakeLists.txt)
+        add_subdirectory(tests)
+    else()
+        message(WARNING "tests/ directory not found; skipping test targets")
+    endif()
+endif()
 
 # link other deps to apr_system_lib
 target_link_libraries(apr_system_lib

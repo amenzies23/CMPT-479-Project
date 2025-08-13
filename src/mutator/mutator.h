@@ -19,7 +19,9 @@ namespace apr_system {
 class Mutator : public IMutator {
   HistoricalFreqs hist_;
 public:
-  Mutator() : hist_( loadHistoricalFrequencies("../test-data/freq.json") ) {}
+  explicit Mutator(const std::string &frequency_json_path)
+      : hist_( loadHistoricalFrequencies(frequency_json_path) ) {}
+  Mutator() : hist_() {}
   ~Mutator() = default;
 
   /**

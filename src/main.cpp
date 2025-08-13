@@ -11,7 +11,6 @@
 #include "mutator/mutator.h"
 #include "prioritizer/prioritizer.h"
 #include "validator/validator.h"
-#include "prbot/prbot.h"
 #include "cli/cli.h"
 
 using namespace apr_system;
@@ -70,8 +69,7 @@ void saveSystemStateToJSON(const SystemState& state, const std::string& filepath
     file << "    \"ast_nodes_count\": " << state.ast_nodes.size() << ",\n";
     file << "    \"patch_candidates_count\": " << state.patch_candidates.size() << ",\n";
     file << "    \"prioritized_patches_count\": " << state.prioritized_patches.size() << ",\n";
-    file << "    \"validation_results_count\": " << state.validation_results.size() << ",\n";
-    file << "    \"pr_created\": " << (state.has_pr_result && state.pr_result.success ? "true" : "false") << "\n";
+    file << "    \"validation_results_count\": " << state.validation_results.size() << "\n";
     file << "  },\n";
 
     // repository metadata
@@ -115,19 +113,7 @@ void saveSystemStateToJSON(const SystemState& state, const std::string& filepath
     }
     file << "  ]";
 
-    // pr result if available
-    if (state.has_pr_result) {
-        file << ",\n";
-        file << "  \"pr_result\": {\n";
-        file << "    \"success\": " << (state.pr_result.success ? "true" : "false") << ",\n";
-        file << "    \"pr_url\": \"" << state.pr_result.pr_url << "\",\n";
-        file << "    \"branch_name\": \"" << state.pr_result.branch_name << "\",\n";
-        file << "    \"commit_hash\": \"" << state.pr_result.commit_hash << "\",\n";
-        file << "    \"title\": \"" << state.pr_result.title << "\"\n";
-        file << "  }\n";
-    } else {
-        file << "\n";
-    }
+    file << "\n";
 
     file << "}\n";
     file.close();
@@ -170,10 +156,10 @@ int main(int argc, char* argv[]) {
         // create component instances
         auto sbfl = std::make_unique<SBFL>();
         auto parser = std::make_unique<Parser>();
-        auto mutator = std::make_unique<Mutator>();
+        // pass frequency file path to mutator so it doesn't rely on compile-time relative paths
+        auto mutator = std::make_unique<Mutator>(args.mutation_freq_json);
         auto prioritizer = std::make_unique<Prioritizer>();
         auto validator = std::make_unique<Validator>();
-        auto prbot = std::make_unique<PRBot>();
 
         // create orchestrator and set components
         auto orchestrator = std::make_unique<Orchestrator>();
@@ -182,8 +168,7 @@ int main(int argc, char* argv[]) {
             std::move(parser),
             std::move(mutator),
             std::move(prioritizer),
-            std::move(validator),
-            std::move(prbot)
+            std::move(validator)
         );
 
         std::vector<TestResult> test_results;
@@ -199,6 +184,9 @@ int main(int argc, char* argv[]) {
 
             if (std::filesystem::exists(args.mutation_freq_json)) {
                 LOG_INFO("loading mutation frequencies from: {}", args.mutation_freq_json);
+            } else {
+                LOG_ERROR("mutation frequency file not found: {}", args.mutation_freq_json);
+                throw std::runtime_error("missing mutation frequency json");
             }
 
         //     if (std::filesystem::exists(args.coverage_file)) {
@@ -246,10 +234,6 @@ int main(int argc, char* argv[]) {
         LOG_INFO("found {} suspicious locations", system_state.suspicious_locations.size());
         LOG_INFO("generated {} patch candidates", system_state.patch_candidates.size());
         LOG_INFO("validated {} patches", system_state.validation_results.size());
-
-        if (system_state.has_pr_result && system_state.pr_result.success) {
-            LOG_INFO("created PR: {}", system_state.pr_result.pr_url);
-        }
 
         // set exit code based on whether patches were found
         if (system_state.validation_results.empty()) {

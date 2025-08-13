@@ -17,10 +17,13 @@ struct CLIArgs {
   std::string mutation_freq_json;
   std::string output_dir;
   std::string config_file;
+  std::string build_script;
+  std::string test_script;
   int max_patches;
   double confidence_threshold;
   bool help;
   bool verbose;
+  bool use_testing_mock;
 };
 
 /**

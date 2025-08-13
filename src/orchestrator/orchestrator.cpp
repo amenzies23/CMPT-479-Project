@@ -43,9 +43,7 @@ SystemState Orchestrator::runPipeline(
         .ast_nodes = {},
         .patch_candidates = {},
         .prioritized_patches = {},
-        .validation_results = {},
-        .has_pr_result = false,
-        .pr_result = {}
+        .validation_results = {}
     };
 
     // step 1: fault localization
@@ -60,7 +58,18 @@ SystemState Orchestrator::runPipeline(
 
     // step 2: AST parsing
     LOG_COMPONENT_INFO("parser", "parsing source files...");
-    state.ast_nodes = parser_->parseAST(state.suspicious_locations, repo_metadata.source_files);
+    // derive source file set from repo metadata and SBFL locations
+    std::vector<std::string> derived_sources = repo_metadata.source_files;
+    derived_sources.reserve(derived_sources.size() + state.suspicious_locations.size());
+    for (const auto &loc : state.suspicious_locations) {
+        if (loc.file_path.empty()) continue;
+        // dedup: append if not already present
+        bool exists = std::find(derived_sources.begin(), derived_sources.end(), loc.file_path) != derived_sources.end();
+        if (!exists) {
+            derived_sources.push_back(loc.file_path);
+        }
+    }
+    state.ast_nodes = parser_->parseAST(state.suspicious_locations, derived_sources);
     LOG_COMPONENT_INFO("parser", "AST parsing completed - extracted {} AST nodes", state.ast_nodes.size());
 
     if (state.ast_nodes.empty()) {
@@ -98,25 +107,7 @@ SystemState Orchestrator::runPipeline(
         return state;
     }
 
-    // step 6: find best patch
-    auto best_patch_it = std::max_element(state.validation_results.begin(),
-                                         state.validation_results.end(),
-        [](const ValidationResult& a, const ValidationResult& b) {
-            return a.tests_passed_count < b.tests_passed_count;
-        });
-
-    if (best_patch_it != state.validation_results.end() && best_patch_it->tests_passed) {
-        // step 7: create pull request
-        LOG_COMPONENT_INFO("prbot", "creating pull request...");
-        state.pr_result = prbot_->createPullRequest(*best_patch_it, repo_metadata, state.validation_results);
-        state.has_pr_result = true;
-
-        if (state.pr_result.success) {
-            LOG_COMPONENT_INFO("prbot", "pull request created successfully: {}", state.pr_result.pr_url);
-        } else {
-            LOG_COMPONENT_ERROR("prbot", "pull request creation failed: {}", state.pr_result.pr_url);
-        }
-    }
+    // NOTE: PR creation is delegated to the GitHub App layer, the engine no longer creates PRs
 
     LOG_COMPONENT_INFO("orchestrator", "APR project pipeline completed successfully!");
     return state;
@@ -127,15 +118,13 @@ void Orchestrator::setComponents(
     std::unique_ptr<IParser> parser,
     std::unique_ptr<IMutator> mutator,
     std::unique_ptr<IPrioritizer> prioritizer,
-    std::unique_ptr<IValidator> validator,
-    std::unique_ptr<IPRBot> prbot
+    std::unique_ptr<IValidator> validator
 ) {
     sbfl_ = std::move(sbfl);
     parser_ = std::move(parser);
     mutator_ = std::move(mutator);
     prioritizer_ = std::move(prioritizer);
     validator_ = std::move(validator);
-    prbot_ = std::move(prbot);
 }
 
 void Orchestrator::validateComponents() const {
@@ -158,10 +147,6 @@ void Orchestrator::validateComponents() const {
     if (!validator_) {
         LOG_APR_ERROR("orchestrator", "validator component not set");
         throw std::runtime_error("validator component not set");
-    }
-    if (!prbot_) {
-        LOG_APR_ERROR("orchestrator", "PR bot component not set");
-        throw std::runtime_error("prbot component not set");
     }
 
     LOG_DEBUG("all orchestrator components validated successfully");

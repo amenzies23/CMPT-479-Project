@@ -37,8 +37,7 @@ public:
                      std::unique_ptr<IParser> parser,
                      std::unique_ptr<IMutator> mutator,
                      std::unique_ptr<IPrioritizer> prioritizer,
-                     std::unique_ptr<IValidator> validator,
-                     std::unique_ptr<IPRBot> prbot) override;
+                     std::unique_ptr<IValidator> validator) override;
 
 private:
   std::unique_ptr<ISBFL> sbfl_;
@@ -46,7 +45,6 @@ private:
   std::unique_ptr<IMutator> mutator_;
   std::unique_ptr<IPrioritizer> prioritizer_;
   std::unique_ptr<IValidator> validator_;
-  std::unique_ptr<IPRBot> prbot_;
   // std::unique_ptr<JSONSchemaValidator> schema_validator_;  // TEMPORARILY DISABLED
 
   /**
