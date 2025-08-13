@@ -35,8 +35,6 @@ add_library(apr_system_lib
     # validator/json_schema_validator.h
     # validator/json_schema_validator.cpp
 
-    prbot/prbot.h
-    prbot/prbot.cpp
 
     orchestrator/orchestrator.h
     orchestrator/orchestrator.cpp

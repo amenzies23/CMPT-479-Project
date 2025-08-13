@@ -8,7 +8,6 @@ std::vector<PatchCandidate> Prioritizer::prioritizePatches(
     const std::vector<PatchCandidate>& patch_candidates,
     const std::string& mutation_freq_json
 ) {
-    LOG_COMPONENT_INFO("prioritizer", "this is a stub implementation");
     LOG_COMPONENT_INFO("prioritizer", "input: {} patch candidates", patch_candidates.size());
 
     std::unordered_map<std::string, std::vector<FreqEntry>> freqMap = parseFrequencyFile(mutation_freq_json);
@@ -35,7 +34,7 @@ std::vector<PatchCandidate> Prioritizer::prioritizePatches(
 
     dumpPrioritizedPatchesToFile(prioritized_patches);
 
-    LOG_COMPONENT_INFO("prioritizer", "returning {} mock prioritized patches", prioritized_patches.size());
+    LOG_COMPONENT_INFO("prioritizer", "prioritized {} patches", prioritized_patches.size());
     return prioritized_patches;
 }
 

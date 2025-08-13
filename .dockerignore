@@ -5,4 +5,4 @@ build/
 .idea/
 *.md
 docs/
-tests/
+# tests/

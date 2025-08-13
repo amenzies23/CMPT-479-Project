@@ -18,10 +18,13 @@ struct CLIArgs {
   std::string buggy_program_dir;
   std::string output_dir;
   std::string config_file;
+  std::string build_script;
+  std::string test_script;
   int max_patches;
   double confidence_threshold;
   bool help;
   bool verbose;
+  bool use_testing_mock;
 };
 
 /**

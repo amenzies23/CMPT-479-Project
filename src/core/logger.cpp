@@ -164,7 +164,6 @@ void Logger::initializeComponentLoggers() {
             {"mutator", "\033[35m"},      // magenta
             {"prioritizer", "\033[33m"},  // yellow
             {"validator", "\033[36m"},    // cyan
-            {"prbot", "\033[31m"},        // red
         };
 
         for (const auto& [component, color] : component_colors) {

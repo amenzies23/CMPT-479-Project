@@ -105,26 +105,6 @@ public:
 };
 
 /**
- * @brief interface for pr bot component
- */
-class IPRBot {
-public:
-  virtual ~IPRBot() = default;
-
-  /**
-   * @brief create a pull request with the best validated patch
-   * @param best_patch the best validated patch
-   * @param repo_metadata repository metadata
-   * @param validation_results all validation results for summary
-   * @return pr creation result
-   */
-  virtual PRResult createPullRequest(
-      const ValidationResult &best_patch,
-      const RepositoryMetadata &repo_metadata,
-      const std::vector<ValidationResult> &validation_results) = 0;
-};
-
-/**
  * @brief interface for the main orchestrator component
  */
 class IOrchestrator {
@@ -148,8 +128,7 @@ public:
                              std::unique_ptr<IParser> parser,
                              std::unique_ptr<IMutator> mutator,
                              std::unique_ptr<IPrioritizer> prioritizer,
-                             std::unique_ptr<IValidator> validator,
-                             std::unique_ptr<IPRBot> prbot) = 0;
+                             std::unique_ptr<IValidator> validator) = 0;
 };
 
 } // namespace apr_system

@@ -21,15 +21,14 @@ graph LR
     C --> D["mutator<br/>patch generation"]
     D --> E["prioritizer<br/>patch ranking"]
     E --> F["validator<br/>compilation & testing"]
-    F --> G["PRBot<br/>pull request creation"]
-    G --> H["output<br/>validated patches<br/>& GitHub PR"]
+    F --> H["output<br/>validated patches"]
     
     B -.-> B1["suspicious<br/>locations"]
     C -.-> C1["AST<br/>nodes"]
     D -.-> D1["patch<br/>candidates"]
     E -.-> E1["ranked<br/>patches"]
     F -.-> F1["validated<br/>patches"]
-    G -.-> G1["GitHub<br/>PR"]
+    F -.-> G1["GitHub<br/>PR (via App)"]
 ```
 
 ***
@@ -131,8 +130,7 @@ build/
   "pipeline_summary": {
     "suspicious_locations_count": 2,
     "patch_candidates_count": 2,
-    "validation_results_count": 2,
-    "pr_created": true
+    "validation_results_count": 2
   },
   "repository_metadata": {
     "repository_url": "https://github.com/user/repo",
@@ -140,11 +138,7 @@ build/
     "commit_hash": "abc123"
   },
   "suspicious_locations": [...],
-  "validation_results": [...],
-  "pr_result": {
-    "success": true,
-    "pr_url": "https://github.com/user/repo/pull/123"
-  }
+  "validation_results": [...]
 }
 ```
 
@@ -169,7 +163,6 @@ CMPT-479-Project/
 │   ├── mutator/            # patch generation
 │   ├── prioritizer/        # patch ranking
 │   ├── validator/          # patch validation
-│   ├── prbot/              # PR creation
 │   └── orchestrator/       # pipeline coordination
 ├── tests/                  
 │   ├── unit/               # unit tests for each module
@@ -208,10 +201,10 @@ CMPT-479-Project/
 - validates functionality and correctness
 - **output:** validation results with pass/fail status
 
-### 6. **PR bot**
-- creates pull requests for valid patches
+### 6. **github app**
+- handles pull request creation for valid patches
 - formats patch descriptions and metadata
-- **output:** github pull request PR
+- **output:** github pull request
 
 ***
 

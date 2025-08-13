@@ -16,14 +16,18 @@ CLIArgs CLIParser::parseArgs(int argc, char* argv[]) {
     args.branch = "main";
     args.commit_hash = "";
     args.sbfl_json = "";
-    args.mutation_freq_json = "../test-data/freq.json";
+    // args.sbfl_json = std::string(PROJECT_SOURCE_DIR) + "/src/testing_mock/data.json";
+    args.mutation_freq_json = std::string(PROJECT_SOURCE_DIR) + "/test-data/freq.json";
     args.output_dir = "apr-project-results";
     args.buggy_program_dir = "";
     args.max_patches = 5;
     args.confidence_threshold = 0.7;
     args.config_file = "";
+    args.build_script = "";
+    args.test_script = "";
     args.help = false;
     args.verbose = false;
+    args.use_testing_mock = false;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -38,7 +42,29 @@ CLIArgs CLIParser::parseArgs(int argc, char* argv[]) {
             args.output_dir = argv[++i];
         } else if (arg == "--buggy-program" && i + 1 < argc) {
             args.buggy_program_dir = argv[++i];
+        } else if (arg == "--sbfl-json" && i + 1 < argc) {
+            args.sbfl_json = argv[++i];
+        } else if (arg == "--freq-json" && i + 1 < argc) {
+            args.mutation_freq_json = argv[++i];
+        } else if (arg == "--build" && i + 1 < argc) {
+            args.build_script = argv[++i];
+        } else if (arg == "--test" && i + 1 < argc) {
+            args.test_script = argv[++i];
+        } else if (arg == "--use-testing-mock") {
+            args.use_testing_mock = true;
         }
+    }
+
+    if (args.use_testing_mock) {
+        if (args.sbfl_json.empty()) {
+            args.sbfl_json = std::string(PROJECT_SOURCE_DIR) + "/src/testing_mock/data.json";
+        }
+
+        // use testing_mock sources
+        // build in a dedicated dir under repo root; validator will find ctest dir
+        args.build_script = std::string("cmake -S ") + PROJECT_SOURCE_DIR + "/src/testing_mock -B build/testing_mock && cmake --build build/testing_mock -j";
+        // run ctest from that build, validator will detect ctest dir even if working in repo root
+        args.test_script = "ctest";
     }
 
     return args;
@@ -51,10 +77,15 @@ void CLIParser::printHelp() {
     std::cout << "  --repo-url URL       repository URL to analyze\n";
     std::cout << "  --output-dir DIR     directory to store results (default: apr-project-results)\n";
     std::cout << " --buggy-program DIR   directory to the buggy program\n";
+    std::cout << "  --sbfl-json PATH     path to SBFL results json\n";
+    std::cout << "  --freq-json PATH     path to historical frequency json\n";
+    std::cout << "  --build CMD          build command to compile project under test\n";
+    std::cout << "  --test CMD           test command (ctest or gtest binary)\n";
+    std::cout << "  --use-testing-mock   convenience flag to target src/testing_mock\n";
     std::cout << "  --verbose, -v        enable verbose output\n";
     std::cout << "  --help, -h           show this help message\n\n";
     std::cout << "example:\n";
-    std::cout << "  apr_system --repo-url https://github.com/user/repo --verbose\n";
+    std::cout << "  apr_system --use-testing-mock --sbfl-json ../src/testing_mock/data.json --verbose\n";
 }
 
 bool CLIParser::validateArgs(const CLIArgs& args) {
@@ -67,11 +98,17 @@ RepositoryMetadata CLIParser::createRepositoryMetadata(const CLIArgs& args) {
     metadata.repository_url = args.repo_url.empty() ? "https://github.com/example/repo" : args.repo_url;
     metadata.branch = args.branch;
     metadata.commit_hash = args.commit_hash.empty() ? "abc123" : args.commit_hash;
-    metadata.build_script = "cmake .. && make";
-    metadata.test_script = "ctest";
-
+    metadata.build_script = args.build_script.empty() ? "cmake .. && make" : args.build_script;
+    metadata.test_script = args.test_script.empty() ? "ctest" : args.test_script;
     metadata.source_files = findSourceFiles(args.buggy_program_dir);
-     return metadata;
+
+    // metadata.source_files.push_back("src/main.cpp");
+    // metadata.source_files.push_back("src/hello_world.cpp");
+//     if (args.use_testing_mock) {
+//         metadata.source_files.push_back("src/testing_mock/src/calculator.cpp");
+//     }
+
+    return metadata;
 }
 
 std::vector<TestResult> CLIParser::loadTestResults(const std::string& file_path) {

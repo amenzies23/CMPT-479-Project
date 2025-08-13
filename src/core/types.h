@@ -15,7 +15,6 @@ struct ASTNode;
 struct PatchCandidate;
 struct PrioritizedPatch;
 struct ValidationResult;
-struct PRResult;
 
 /**
  * @brief test execution result
@@ -188,29 +187,16 @@ struct ValidationResult {
   std::string error_message;
   int tests_passed_count;
   int tests_total_count;
+  std::string phase_a_artifact_path;
+  std::string phase_b_artifact_path;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(ValidationResult, patch_id,
                                  compilation_success, tests_passed,
                                  build_time_ms, test_time_ms, build_output,
                                  test_output, error_message, tests_passed_count,
-                                 tests_total_count)
+                                 tests_total_count, phase_a_artifact_path, phase_b_artifact_path)
 };
 
-/**
- * @brief pull request creation result
- */
-struct PRResult {
-  std::string pr_url;
-  std::string branch_name;
-  std::string commit_hash;
-  std::string title;
-  std::string description;
-  bool success;
-  std::string error_message;
-
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(PRResult, pr_url, branch_name, commit_hash,
-                                 title, description, success, error_message)
-};
 
 /**
  * @brief repository metadata
@@ -241,13 +227,10 @@ struct SystemState {
   std::vector<PatchCandidate> patch_candidates;
   std::vector<PatchCandidate> prioritized_patches;
   std::vector<ValidationResult> validation_results;
-  bool has_pr_result;
-  PRResult pr_result;
-
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(SystemState, repo_metadata,
                                  suspicious_locations, ast_nodes,
                                  patch_candidates, prioritized_patches,
-                                 validation_results, has_pr_result, pr_result)
+                                 validation_results)
 };
 
 } // namespace apr_system
