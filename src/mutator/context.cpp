@@ -327,7 +327,7 @@ namespace apr_system {
             std::back_inserter(unionSet)
         );
 
-        if (unionSet.empty()) return 0.0;
+        if (unionSet.empty()) return 1.0;
         return double(intersection.size()) / double(unionSet.size());
     }
 
@@ -349,7 +349,7 @@ namespace apr_system {
             }
         }
 
-        if (denominator == 0) return 0.0;
+        if (denominator == 0) return 1.0;
         return double(numerator) / double(denominator);
     }
 
@@ -390,6 +390,8 @@ namespace apr_system {
         // Simi_D = (1 − f_gen(other, target)) * (1 − f_dep(other, target))
         double gSimOther = computeGenealogySimilarity(otherGenealogy, targetGenealogy);
         double dSimOther = computeDependencySimilarity(otherDependency, targetDependency);
+        // Guard against when the target and other are the same node. This would normally reutrn (1.0-1.0) * (1.0-1.0) = 0
+        if (gSimOther==1.0 && dSimOther==1.0) return 1.0;
         return (1.0 - gSimOther) * (1.0 - dSimOther);
     }
 

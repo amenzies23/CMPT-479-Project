@@ -101,7 +101,7 @@ public:
    */
   virtual std::vector<ValidationResult>
   validatePatches(const std::vector<PatchCandidate> &prioritized_patches,
-                  const RepositoryMetadata &repo_metadata, int top_k = 10) = 0;
+                  const RepositoryMetadata &repo_metadata, int top_k = 100) = 0;
 };
 
 /**
