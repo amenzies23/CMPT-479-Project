@@ -1,13 +1,15 @@
 {
   "Replacement": [
     { "target": "identifier", "freq": 0.1721 }, 
-    { "target": "string_literal", "freq": 0.1310 },  
-    { "target": "binary_expression", "freq": 0.0201 },  
-    { "target": "qualified_identifier", "freq": 0.0197 },  
-    { "target": "conditional_expression", "freq": 0.0135 },
-    { "target": "type_identifier", "freq": 0.0082 }, 
-    { "target": "boolean_literal", "freq": 0.0075 }, 
+    { "target": "binary_expression", "freq": 0.1310 },
+    { "target": "call_expression", "freq": 0.1000 },  
+    { "target": "string_literal", "freq": 0.0201 },  
+    { "target": "return_statement", "freq": 0.0197 },  
+    { "target": "field_expression", "freq": 0.0082 }, 
+    { "target": "field_identifier", "freq": 0.0075 }, 
     { "target": "template_argument_list", "freq": 0.0038 }, 
+    { "target": "expression_statement", "freq": 0.0031 }, 
+    { "target": "update_expression", "freq": 0.0028 },
     { "target": "primitive_type", "freq": 0.0009 },
     { "target": "assignment_expression", "freq": 0.0003 } 
   ],
@@ -26,13 +28,11 @@
   "Deletion": [
     { "target": "identifier", "source": "call_expression", "freq": 0.0191 }, 
     { "target": "expression_statement", "source": "function_definition", "freq": 0.0157 }, 
-    { "target": "binary_expression", "source": "if_statement", "freq": 0.0144 }, 
+    { "target": "return_statement", "source": "return_statement", "freq": 0.0144 }, 
     { "target": "call_expression", "source": "call_expression", "freq": 0.0144 }, 
-    { "target": "expression_statement", "source": "if_statement", "freq": 0.0072 },
+    { "target": "update_expression", "source": "update_expression", "freq": 0.0072 },
     { "target": "binary_expression", "source": "call_expression", "freq": 0.0066 },
     { "target": "unary_expression", "source": "if_statement", "freq": 0.0041 },
-    { "target": "boolean_literal", "source": "call_expression", "freq": 0.0038 },
-    { "target": "expression_statement", "source": "catch_clause", "freq": 0.0031 },
-    { "target": "call_expression", "source": "binary_expression", "freq": 0.0028 } 
+    { "target": "boolean_literal", "source": "call_expression", "freq": 0.0038 }
   ]
 }

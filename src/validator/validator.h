@@ -17,7 +17,7 @@ struct ValidationConfig {
   int time_budget_minutes;
   int max_patches_to_validate;
   bool enable_early_exit;
-  ValidationConfig() : time_budget_minutes(70), max_patches_to_validate(10), enable_early_exit(true) {}
+  ValidationConfig() : time_budget_minutes(70), max_patches_to_validate(100), enable_early_exit(true) {}
   ValidationConfig(int budget_minutes, int max_patches, bool early_exit = true)
       : time_budget_minutes(budget_minutes), max_patches_to_validate(max_patches), enable_early_exit(early_exit) {}
 };
@@ -58,7 +58,7 @@ public:
   virtual std::vector<ValidationResult>
   validatePatches(const std::vector<PatchCandidate> &prioritized_patches,
                   const RepositoryMetadata &repo_metadata,
-                  int top_k = 10);
+                  int top_k = 20);
 
   // set validation config (time budget, max patches, early exit)
   void setConfig(const ValidationConfig& config) { config_ = config; }
