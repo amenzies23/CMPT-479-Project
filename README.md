@@ -82,6 +82,17 @@ build/
 
 ## usage
 
+
+### example of a running buggy program
+```bash
+docker run --rm -v $(pwd):/workspace -w /workspace apr-system:latest bash -c "set -e; \
+  rm -rf build && mkdir -p build && cd build && cmake .. && make -j\$(nproc); \
+  cd /workspace/buggy-programs && ./build-all.sh; \
+  cd /workspace/build && ./bin/apr_system --buggy-program /workspace/buggy-programs/01-buggy-calculator --verbose"
+```
+
+***
+
 ### basic usage
 ```bash
 # from build directory
