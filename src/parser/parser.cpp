@@ -96,28 +96,6 @@ bool correct_pos(TSNode ast_Node, uint32_t sus_byte_pos) {
     return (node_start_byte <= sus_byte_pos && sus_byte_pos <= node_end_byte);
 }
 
-// Helper, recursively walk through syntax tree and collect nodes that cover the suspicious position
-// void walk_tree(TSNode curr_node, TSNode root_node, const std::string &source_content, uint32_t sus_byte_pos, 
-//                std::vector<ASTNode>& node_AST, int &unique_node_counter, const std::string& file_path,
-//                double suspiciousness_score, const std::string& sbfl_reason) {
-//     // If were looking at a suspicious node, add the score in. If not, we just pass 0.0 and empty string
-//     bool is_susp = correct_pos(curr_node, sus_byte_pos);
-//     ASTNode parsed_node = create_ast_node(
-//         curr_node, root_node, source_content, unique_node_counter, file_path,
-//         is_susp ? suspiciousness_score : 0.0,  is_susp ? sbfl_reason : ""
-//     );
-
-//     node_AST.push_back(parsed_node);
-    
-//     // Recursively check all child syntax nodes
-//     uint32_t number_of_child_nodes = ts_node_child_count(curr_node);
-//     for (uint32_t child_index = 0; child_index < number_of_child_nodes; ++child_index) {
-//         TSNode child_syntax_node = ts_node_child(curr_node, child_index);
-//         walk_tree(child_syntax_node, root_node, source_content, sus_byte_pos, node_AST, 
-//                  unique_node_counter, file_path, suspiciousness_score, sbfl_reason);
-//     }
-// }
-
 // Helper, parse a single source file into a syntax tree using Tree-sitter
 TSTree* parse_file_into_AST(const std::string& file_path, const std::string& source_content) {
     // Create a new Tree-sitter parser
@@ -176,42 +154,6 @@ parse_files_into_AST(const std::vector<std::string>& source_file_paths) {
     
     return {path_to_AST, source_content_path};
 }
-
-// Helper, process a single suspicious location and extract relevant syntax nodes
-// void process_suspicious_location(const SuspiciousLocation& sus_loc,
-//                                        const std::unordered_map<std::string, TSTree*>& path_to_AST,
-//                                        const std::unordered_map<std::string, std::string>& source_content_path,
-//                                        std::vector<ASTNode>& node_AST,
-//                                        int& unique_node_counter) {
-
-//     // Find the syntax tree for this suspicious file
-//     auto lookup_AST = path_to_AST.find(sus_loc.file_path);
-//     if (lookup_AST == path_to_AST.end()) {
-//         LOG_COMPONENT_WARN("parser", "File not parsed: {}", sus_loc.file_path);
-//         return;
-//     }
-    
-//     // Get the source code content and syntax tree for this file
-//     const std::string& source_code_content = source_content_path.at(sus_loc.file_path);
-//     TSTree* parsed_AST = lookup_AST->second;
-    
-//     LOG_COMPONENT_INFO("parser", "Processing suspicious location: line {} in file {} (score: {:.3f})", 
-//                       sus_loc.line_number, sus_loc.file_path, sus_loc.suspiciousness_score);
-    
-//     // Convert the suspicious line number to a byte position in the file
-//     int sus_byte_pos = get_byte_position_for_line(source_code_content, sus_loc.line_number);
-//     if (sus_byte_pos == -1) {
-//         LOG_COMPONENT_WARN("parser", "Suspicious line {} not found in file {}",
-//                           sus_loc.line_number, sus_loc.file_path);
-//         return;
-//     }
-    
-//     // Get the root of the syntax tree and collect all nodes covering the suspicious position
-//     TSNode root_syntax_node = ts_tree_root_node(parsed_AST);
-//     walk_tree(root_syntax_node, root_syntax_node, source_code_content, sus_byte_pos, node_AST, 
-//              unique_node_counter, sus_loc.file_path, 
-//              sus_loc.suspiciousness_score, sus_loc.reason);
-// }
 
 // Helper, clean up Tree-sitter syntax tree memory
 void cleanup(const std::unordered_map<std::string, TSTree*>& path_to_AST) {

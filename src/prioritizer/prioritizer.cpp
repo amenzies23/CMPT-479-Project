@@ -38,18 +38,6 @@ std::vector<PatchCandidate> Prioritizer::prioritizePatches(
     return prioritized_patches;
 }
 
-/**
- * Note / question for devs (will remove in a later commit):
- * Currently following the CapGen method, this computes the priority score based on the suspiciousness score, similarity score, and historical frequencies.
- * We implemented logic for the suspiciousness and similarity ourselves, and I trust the way we did this. However, we were not
- * able to build up real historical patch data from C++ patches. So the values inside `freq.json` are all mocked values.
- * They follow the numbers in the CapGen paper, but some of the node types that CapGens historical data had do not match types from tree-sitter.
- * I did my best to match similar node types, but regardless this data should not be reliable for our purposes.
- * 
- * I left this using the historical frequencies for now, but we may decide to scrap it all together and just build up the priority from
- * our suspiciousness score and similarity. Its definitely something id love to have working properly with real data in the future which is why I left it,
- * but in the scope of this project and the time remaining we may need to compromise.
- */
 double Prioritizer::computePriorityScore(
     const PatchCandidate& patch, 
     std::unordered_map<std::string, std::vector<FreqEntry>>& freqMap 
@@ -78,9 +66,6 @@ double Prioritizer::computePriorityScore(
     return similarity * suspiciousness_score * freqScore;
     // return similarity * suspiciousness_score;
 }
-
-
-
 
 // helper function to add mutation frequencies to mapping
 void addToFreqMap(
